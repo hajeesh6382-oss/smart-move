@@ -1,0 +1,210 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Inter', 'Noto Sans Devanagari', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Kannada', 'Noto Sans Malayalam', 'Noto Sans Bengali', 'Noto Sans Gujarati', 'Noto Sans Gurmukhi', sans-serif;
+    --font-display: 'Outfit', 'Inter', sans-serif;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #030712;
+    color: #f8fafc;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #030712;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Premium Dark Glassmorphism Styles */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+}
+
+.glass-panel-subtle {
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.3);
+}
+
+.glass-panel-glow {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 0 35px -5px rgba(56, 189, 248, 0.2);
+}
+
+.glass-pill {
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 25px rgba(6, 182, 212, 0.35);
+}
+
+.glow-blue {
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.35);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.35);
+}
+
+/* Keyframe Animations */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes ping-slow {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.6); opacity: 0.25; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* SMARTMOVE Urban Mobility Dynamic Animations */
+@keyframes road-dash {
+  0% { stroke-dashoffset: 40; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes road-move-h {
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 0; }
+}
+
+@keyframes vehicle-drive {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(1200px); }
+}
+
+@keyframes vehicle-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes gantry-scan {
+  0% { transform: translateY(-100%); opacity: 0.2; }
+  50% { opacity: 0.9; }
+  100% { transform: translateY(100%); opacity: 0.2; }
+}
+
+@keyframes beacon-wave {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.8); opacity: 0; }
+}
+
+@keyframes traffic-stream {
+  0% { transform: scaleX(0.2); transform-origin: left; opacity: 0.4; }
+  50% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(0.2); transform-origin: right; opacity: 0.4; }
+}
+
+@keyframes signal-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(37, 99, 235, 0.4)); }
+  50% { filter: drop-shadow(0 0 12px rgba(37, 99, 235, 0.9)); }
+}
+
+.animate-ping-slow {
+  animation: ping-slow 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-float {
+  animation: float-slow 3s ease-in-out infinite;
+}
+
+.animate-road-dash {
+  stroke-dasharray: 8 8;
+  animation: road-dash 1s linear infinite;
+}
+
+.animate-road-move {
+  background-image: repeating-linear-gradient(90deg, #2563eb, #2563eb 20px, transparent 20px, transparent 40px);
+  background-size: 40px 3px;
+  animation: road-move-h 0.8s linear infinite;
+}
+
+.animate-vehicle-bob {
+  animation: vehicle-bob 1.2s ease-in-out infinite;
+}
+
+.animate-beacon-wave {
+  animation: beacon-wave 2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+
+.animate-gantry-scan {
+  animation: gantry-scan 2.5s ease-in-out infinite;
+}
+
+.animate-traffic-stream {
+  animation: traffic-stream 3s ease-in-out infinite;
+}
+
+.animate-signal-glow {
+  animation: signal-glow 2s ease-in-out infinite;
+}
+
+/* Leaflet Map overrides for futuristic dark & responsive theme */
+.leaflet-container {
+  background-color: #0b1329 !important;
+  font-family: inherit !important;
+  width: 100%;
+  height: 100%;
+}
+
+.leaflet-popup-content-wrapper {
+  background: rgba(15, 23, 42, 0.95) !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(56, 189, 248, 0.4) !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.leaflet-popup-tip {
+  background: #0f172a !important;
+}
