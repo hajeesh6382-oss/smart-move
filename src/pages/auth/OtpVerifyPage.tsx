@@ -153,12 +153,14 @@ export const OtpVerifyPage: React.FC = () => {
     setSuccessMsg(null);
 
     try {
+      const pendingRole = sessionStorage.getItem('smartmove_pending_role');
       const res = pendingPhoneNumber ? await verifyPhoneOtp(token) : await verifyOtp(token);
 
       if (res.success) {
         setSuccessMsg('✓ Verified successfully! Initializing SMARTMOVE session...');
+        const isTargetAdmin = (res as any).role === 'admin' || pendingRole === 'admin' || isAdmin;
         setTimeout(() => {
-          if (isAdmin) {
+          if (isTargetAdmin) {
             navigate('/admin');
           } else {
             navigate('/app');

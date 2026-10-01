@@ -89,6 +89,7 @@ export const SignInPage: React.FC = () => {
       const res = await realtimeOtpService.generateAndSendOtp(email, 'email');
       if (res.success) {
         sessionStorage.setItem('smartmove_pending_recipient', email);
+        sessionStorage.setItem('smartmove_pending_role', 'citizen');
         navigate('/auth/verify-otp');
       } else {
         setErrorMsg(res.error || 'Failed to dispatch email verification code.');

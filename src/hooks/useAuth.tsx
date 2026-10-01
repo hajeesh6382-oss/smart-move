@@ -8,6 +8,7 @@ import {
   FirebaseUserProfile,
   DEMO_PROFILES,
   getStoredUserProfile,
+  setStoredUserProfile,
 } from '../lib/firebase/authService';
 import { realtimeOtpService } from '../services/realtimeOtpService';
 
@@ -34,6 +35,7 @@ interface SignUpResult {
 interface VerifyOtpResult {
   success: boolean;
   error?: string;
+  role?: UserRole;
 }
 
 interface ResendOtpResult {
@@ -231,22 +233,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return verifyPhoneOtp(token);
     }
     const targetRecipient = pendingOtpEmail || sessionStorage.getItem('smartmove_pending_recipient') || 'user@smartmove.city';
+    const pendingRole = (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('smartmove_pending_role') : null) as UserRole | null;
     const res = await realtimeOtpService.verifyOtp(targetRecipient, token);
     if (res.success) {
+      const resolvedRole: UserRole = (pendingRole === 'admin' || res.role === 'admin') ? 'admin' : 'citizen';
       const profile: UserProfile = {
         id: 'usr_' + Date.now(),
         email: targetRecipient.includes('@') ? targetRecipient : `${targetRecipient}@smartmove.user`,
-        full_name: pendingFullName || 'SMARTMOVE Commuter',
+        full_name: pendingFullName || (resolvedRole === 'admin' ? 'City Transit Official' : 'SMARTMOVE Commuter'),
         phone: pendingPhoneNumber || undefined,
-        role: res.role || 'citizen',
+        role: resolvedRole,
         preferred_language: 'en',
         preferred_transport: 'balanced',
         voice_enabled: true,
       };
       setUser(profile);
+      setStoredUserProfile({
+        uid: profile.id,
+        email: profile.email,
+        displayName: profile.full_name,
+        phoneNumber: profile.phone || null,
+        photoURL: null,
+        role: resolvedRole,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
       setPendingOtpEmail(null);
       setPendingFullName(null);
-      return { success: true };
+      return { success: true, role: resolvedRole };
     }
     return { success: false, error: res.error || 'Invalid 6-digit confirmation code.' };
   };

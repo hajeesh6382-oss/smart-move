@@ -331,8 +331,9 @@ class RealtimeOtpService {
       // ignore
     }
 
-    // Determine role (phone ending in 998877 or admin email is admin)
-    const isAdmin = recipient.includes('998877') || recipient.includes('admin');
+    // Determine role (pending role, phone ending in 998877, or admin email is admin)
+    const pendingRole = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('smartmove_pending_role') : null;
+    const isAdmin = pendingRole === 'admin' || recipient.includes('998877') || recipient.includes('admin');
 
     return {
       success: true,
