@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { LeafletCityMap } from '../../components/map/LeafletCityMap';
 import {
@@ -28,6 +29,7 @@ import {
 } from '../../services/dynamicPricingService';
 
 export const DynamicRoadPricingPage: React.FC = () => {
+  const { t } = useTranslation();
   const { data: rawZones } = useRealtimeTable('road_pricing_zones');
   const { data: rawLive } = useRealtimeTable('road_pricing_live');
   const { data: rawPredictions } = useRealtimeTable('road_pricing_predictions');

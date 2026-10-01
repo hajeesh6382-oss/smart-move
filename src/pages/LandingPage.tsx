@@ -13,12 +13,13 @@ import {
   MapPin,
   Coins,
   Navigation,
+  Compass,
 } from 'lucide-react';
 
 export const LandingPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { signInAsDemo } = useAuth();
+  const { user, signInAsDemo } = useAuth();
 
   // Real-time ticking hackathon demo status counter
   const [secondsAgo, setSecondsAgo] = useState(8);
@@ -93,7 +94,7 @@ export const LandingPage: React.FC = () => {
               }}
               className="px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-sm sm:text-base shadow-2xl shadow-cyan-500/35 hover:shadow-cyan-500/50 hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 cursor-pointer border border-cyan-300/40"
             >
-              <span>PLAN YOUR JOURNEY</span>
+              <span>{t('landing.planJourney', 'PLAN YOUR JOURNEY')}</span>
               <ArrowRight className="w-5 h-5" />
             </button>
 
@@ -106,16 +107,19 @@ export const LandingPage: React.FC = () => {
               className="px-7 py-4 rounded-2xl bg-slate-900/80 hover:bg-slate-850 text-cyan-300 hover:text-white border border-cyan-500/40 hover:border-cyan-400 font-bold text-sm sm:text-base shadow-xl backdrop-blur-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 cursor-pointer"
             >
               <Navigation className="w-4 h-4 text-cyan-400 animate-pulse" />
-              <span>EXPLORE LIVE MAP</span>
+              <span>{t('nav.liveMap', 'EXPLORE LIVE MAP')}</span>
             </button>
 
-            {/* AI Peak-Hour Demo Mode Button */}
+            {/* Route & ERP Planner Button */}
             <button
-              onClick={() => navigate('/demo')}
-              className="px-6 py-4 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-amber-200 border border-amber-500/40 font-bold text-sm sm:text-base shadow-xl backdrop-blur-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+              onClick={() => {
+                if (!user) signInAsDemo('citizen');
+                navigate('/app/routes');
+              }}
+              className="px-6 py-4 rounded-2xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 border border-indigo-500/40 font-bold text-sm sm:text-base shadow-xl backdrop-blur-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
             >
-              <PlayCircle className="w-4 h-4 text-amber-400" />
-              <span>RUN AI DEMO</span>
+              <Compass className="w-4 h-4 text-indigo-400" />
+              <span>{t('nav.planner', 'ROUTE PLANNER')}</span>
             </button>
           </div>
 
@@ -184,9 +188,6 @@ export const LandingPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-4 text-slate-400">
-          <button onClick={() => navigate('/demo')} className="hover:text-cyan-400 transition-colors cursor-pointer">
-            Peak Demo Mode
-          </button>
           <button onClick={handleLaunchCitizen} className="hover:text-cyan-400 transition-colors cursor-pointer">
             Citizen App
           </button>

@@ -398,15 +398,6 @@ export const NavbarAndDrawer: React.FC<NavbarAndDrawerProps> = ({
 
             {/* Drawer Bottom Actions */}
             <div className="pt-6 border-t border-slate-800 space-y-3">
-              <button
-                onClick={() => {
-                  setDrawerOpen(false);
-                  navigate('/demo');
-                }}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
-              >
-                <Sparkles className="w-4 h-4" /> Run AI Peak-Hour Demo
-              </button>
 
               <button
                 onClick={() => {

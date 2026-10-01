@@ -97,18 +97,8 @@ export const OtpVerifyPage: React.FC = () => {
       }
     );
 
-    // 3. Listen to AutoFill event
-    const handleAutofill = (e: any) => {
-      if (e.detail?.otpCode) {
-        fillOtpDigits(e.detail.otpCode);
-      }
-    };
-
-    window.addEventListener('SMARTMOVE_AUTOFILL_OTP', handleAutofill);
-
     return () => {
       unsubscribe();
-      window.removeEventListener('SMARTMOVE_AUTOFILL_OTP', handleAutofill);
     };
   }, [targetRecipient]);
 
@@ -256,54 +246,6 @@ export const OtpVerifyPage: React.FC = () => {
             </strong>
           </p>
         </div>
-
-        {/* Live Database Code Stream Card */}
-        {liveDbOtp && (
-          <div className="mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-slate-900/90 to-purple-950/40 border border-cyan-500/40 shadow-lg relative overflow-hidden">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold">
-                <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-                Live Supabase OTP Stream
-              </div>
-              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                Active Code
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-1">
-                {liveDbOtp.split('').map((char, i) => (
-                  <span
-                    key={i}
-                    className="w-7 h-9 flex items-center justify-center font-mono font-black text-lg text-emerald-300 bg-slate-950/80 rounded-lg border border-emerald-500/30"
-                  >
-                    {char}
-                  </span>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={handleCopyLiveCode}
-                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
-                  title="Copy OTP"
-                >
-                  {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAutoFillAndVerify}
-                  disabled={isVerifying}
-                  className="px-3 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(6,182,212,0.4)] cursor-pointer"
-                >
-                  <Zap className="w-3.5 h-3.5" />
-                  Fill &amp; Verify
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Error / Success Notifications */}
         {errorMsg && (

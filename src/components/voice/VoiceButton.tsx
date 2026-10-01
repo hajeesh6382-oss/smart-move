@@ -35,6 +35,13 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ onTranscriptReceived, 
             if (onTranscriptReceived) {
               onTranscriptReceived(text);
             }
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(
+                new CustomEvent('SMARTMOVE_VOICE_QUERY', {
+                  detail: { query: text, lang: i18n.language },
+                })
+              );
+            }
           }
         },
         (err) => {

@@ -136,14 +136,6 @@ export const CitizenLayout: React.FC = () => {
               </button>
             )}
 
-            <button
-              onClick={() => navigate('/demo')}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 hover:scale-105 transition-all cursor-pointer"
-            >
-              <PlayCircle className="w-3.5 h-3.5 text-white" />
-              <span>Run AI Demo</span>
-            </button>
-
             {user ? (
               <div className="flex items-center gap-2 pl-2 border-l border-blue-200">
                 <button
@@ -159,7 +151,7 @@ export const CitizenLayout: React.FC = () => {
                 onClick={() => navigate('/auth/signin')}
                 className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer"
               >
-                Sign In
+                {t('buttons.sign_in', 'Sign In')}
               </button>
             )}
           </div>
@@ -185,7 +177,7 @@ export const CitizenLayout: React.FC = () => {
           }
         >
           <Compass className="w-5 h-5" />
-          <span>Home</span>
+          <span>{t('nav.dashboard', 'Home')}</span>
         </NavLink>
 
         <NavLink
@@ -197,16 +189,12 @@ export const CitizenLayout: React.FC = () => {
           }
         >
           <Route className="w-5 h-5" />
-          <span>Routes</span>
+          <span>{t('nav.routes', 'Routes')}</span>
         </NavLink>
 
         {/* Center Prominent Voice Mic */}
         <div className="-mt-5">
-          <VoiceButton
-            onTranscriptReceived={(transcript) => {
-              // voice assistant handles command
-            }}
-          />
+          <VoiceButton />
         </div>
 
         <NavLink
@@ -218,7 +206,7 @@ export const CitizenLayout: React.FC = () => {
           }
         >
           <Coins className="w-5 h-5" />
-          <span>ERP Tolls</span>
+          <span>{t('nav.road_pricing', 'ERP Tolls')}</span>
         </NavLink>
 
         <button
@@ -230,7 +218,7 @@ export const CitizenLayout: React.FC = () => {
           {unreadAlertsCount > 0 && (
             <span className="absolute -top-1 right-2 w-2 h-2 rounded-full bg-rose-500" />
           )}
-          <span>Alerts</span>
+          <span>{t('nav.alerts', 'Alerts')}</span>
         </button>
       </div>
 

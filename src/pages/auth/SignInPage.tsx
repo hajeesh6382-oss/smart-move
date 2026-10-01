@@ -542,11 +542,19 @@ export const SignInPage: React.FC = () => {
         </div>
 
         {/* Footer Navigation */}
-        <div className="text-center text-xs text-slate-500">
-          Don't have an account?{' '}
-          <Link to="/auth/signup" className="font-bold text-blue-600 hover:underline">
-            Create an Account
-          </Link>
+        <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col gap-2 text-center text-xs text-slate-500">
+          <div>
+            Don't have an account?{' '}
+            <Link to="/auth/signup" className="font-bold text-blue-600 hover:underline">
+              Create Citizen Account
+            </Link>
+          </div>
+          <div>
+            City Authority or Transit Official?{' '}
+            <Link to="/auth/admin-signin" className="font-bold text-indigo-600 hover:underline">
+              Admin Portal (Email OTP) ➔
+            </Link>
+          </div>
         </div>
       </div>
     </div>

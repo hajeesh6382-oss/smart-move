@@ -14,6 +14,8 @@ import { AdminLayout } from './layouts/AdminLayout';
 import { LandingPage } from './pages/LandingPage';
 import { SignInPage } from './pages/auth/SignInPage';
 import { SignUpPage } from './pages/auth/SignUpPage';
+import { AdminSignInPage } from './pages/auth/AdminSignInPage';
+import { AdminSignUpPage } from './pages/auth/AdminSignUpPage';
 import { OtpVerifyPage } from './pages/auth/OtpVerifyPage';
 import { DemoModePage } from './pages/DemoModePage';
 import { RealtimeOtpNotification } from './components/ui/RealtimeOtpNotification';
@@ -73,7 +75,13 @@ export const App: React.FC = () => {
             <Route path="/" element={<LandingPage />} />
             <Route path="/demo" element={<DemoModePage />} />
             <Route path="/auth/signin" element={<SignInPage />} />
+            <Route path="/auth/signin/citizen" element={<SignInPage />} />
+            <Route path="/auth/signin/admin" element={<AdminSignInPage />} />
+            <Route path="/auth/admin-signin" element={<AdminSignInPage />} />
             <Route path="/auth/signup" element={<SignUpPage />} />
+            <Route path="/auth/signup/citizen" element={<SignUpPage />} />
+            <Route path="/auth/signup/admin" element={<AdminSignUpPage />} />
+            <Route path="/auth/admin-signup" element={<AdminSignUpPage />} />
             <Route path="/auth/verify-otp" element={<OtpVerifyPage />} />
 
             {/* Citizen Protected Application Routes */}

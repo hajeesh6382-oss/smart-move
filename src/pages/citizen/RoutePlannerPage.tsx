@@ -4,6 +4,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { SUPPORTED_LANGUAGES } from '../../i18n';
 import { SourceBadge } from '../../components/ui/SourceBadge';
 import { LiveBadge } from '../../components/ui/LiveBadge';
 import { SmartCityMap } from '../../components/map/SmartCityMap';
@@ -49,6 +51,7 @@ import { DynamicMapLocation, RequirementType } from '../../components/map/types'
 import { ErrorBoundary } from '../../components/ui/ErrorBoundary';
 
 const RoutePlannerPageContent: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlDest = searchParams.get('dest') || '';
   const urlOrigin = searchParams.get('origin') || '';
@@ -164,25 +167,32 @@ const RoutePlannerPageContent: React.FC = () => {
   // Voice guidance state
   const [voiceGuidanceEnabled, setVoiceGuidanceEnabled] = useState(true);
 
-  // English Text-to-Speech announcer
+  // Multilingual Regional Text-to-Speech announcer
   const speakInstruction = useCallback((text: string) => {
     if (!voiceGuidanceEnabled || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
     try {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
+      const langCode = i18n.language || 'en';
+      const langObj = SUPPORTED_LANGUAGES.find((l) => l.code === langCode);
+      const targetBcp47 = langObj?.bcp47 || 'en-IN';
+      utterance.lang = targetBcp47;
       utterance.rate = 1.0;
       utterance.pitch = 1.0;
 
       const voices = window.speechSynthesis.getVoices();
-      const enVoice = voices.find((v) => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('English')));
-      if (enVoice) utterance.voice = enVoice;
+      const regionalVoice = voices.find(
+        (v) =>
+          v.lang.toLowerCase().replace('_', '-').startsWith(targetBcp47.toLowerCase()) ||
+          v.lang.toLowerCase().startsWith(langCode.toLowerCase())
+      );
+      if (regionalVoice) utterance.voice = regionalVoice;
 
       window.speechSynthesis.speak(utterance);
     } catch (e) {
       console.warn('[SMARTMOVE Voice] TTS notice:', e);
     }
-  }, [voiceGuidanceEnabled]);
+  }, [voiceGuidanceEnabled, i18n.language]);
 
   // Start Navigation Action
   const handleStartNavigation = () => {
@@ -629,10 +639,10 @@ const RoutePlannerPageContent: React.FC = () => {
             <SourceBadge source={dataSourceBadge} />
           </div>
           <h2 className="text-2xl lg:text-3xl font-black font-display text-white mt-0.5">
-            Smart Route Optimizer & Active Navigation
+            {t('routes.title', 'Smart Route Optimizer & Active Navigation')}
           </h2>
           <p className="text-xs text-slate-400">
-            Compute traffic-aware routes for Metro Hub or any location worldwide with real Google Maps navigation.
+            {t('routes.subtitle', 'Compute traffic-aware routes for Metro Hub or any location worldwide with real navigation.')}
           </p>
         </div>
 
@@ -813,20 +823,20 @@ const RoutePlannerPageContent: React.FC = () => {
             {/* Google Places Autocomplete Inputs */}
             <div className="space-y-3">
               <PlacesAutocompleteInput
-                label="Origin Point (FROM)"
+                label={t('routes.origin_label', 'Origin Point (FROM)')}
                 value={startPoint}
                 onChange={setStartPoint}
                 onSelectPlace={setOriginPlace}
-                placeholder="Enter city, town, address, or landmark..."
+                placeholder={t('routes.origin_placeholder', 'Enter city, town, address, or landmark...')}
                 indicatorColor="bg-blue-600"
               />
 
               <PlacesAutocompleteInput
-                label="Destination (TO)"
+                label={t('routes.destination_label', 'Destination (TO)')}
                 value={destination}
                 onChange={setDestination}
                 onSelectPlace={setDestPlace}
-                placeholder="Enter destination location..."
+                placeholder={t('routes.destination_placeholder', 'Enter destination location...')}
                 indicatorColor="bg-emerald-600"
               />
             </div>
@@ -881,22 +891,22 @@ const RoutePlannerPageContent: React.FC = () => {
               {buttonState === 'calculating' ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                  Calculating Route...
+                  {t('routes.calculating', 'Calculating Route...')}
                 </>
               ) : buttonState === 'success' ? (
                 <>
                   <CheckCircle2 className="w-4 h-4 text-white" />
-                  Plan & Recalculate Route
+                  {t('routes.calculate_button', 'Plan & Recalculate Route')}
                 </>
               ) : buttonState === 'error' ? (
                 <>
                   <AlertTriangle className="w-4 h-4 text-white" />
-                  Try Again
+                  {t('common.cancel', 'Try Again')}
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 text-white" />
-                  Plan & Recalculate Route
+                  {t('routes.calculate_button', 'Find Optimal Route')}
                 </>
               )}
             </button>

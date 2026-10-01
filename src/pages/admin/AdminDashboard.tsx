@@ -122,13 +122,6 @@ export const AdminDashboard: React.FC = () => {
           >
             <SlidersHorizontal className="w-3.5 h-3.5" /> What-If Simulator
           </button>
-
-          <button
-            onClick={() => navigate('/demo')}
-            className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs border border-slate-700 transition-all cursor-pointer"
-          >
-            🎬 12-Step Demo
-          </button>
         </div>
       </div>
 

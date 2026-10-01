@@ -60,6 +60,17 @@ export const AssistantPanel: React.FC = () => {
     }
   }, [messages, isOpen]);
 
+  useEffect(() => {
+    const handleVoiceQuery = (e: any) => {
+      if (e.detail?.query) {
+        setIsOpen(true);
+        handleSendMessage(e.detail.query);
+      }
+    };
+    window.addEventListener('SMARTMOVE_VOICE_QUERY', handleVoiceQuery);
+    return () => window.removeEventListener('SMARTMOVE_VOICE_QUERY', handleVoiceQuery);
+  }, [i18n.language]);
+
   const promptChips = [
     'Why is College Road jammed?',
     'When will Bus 102 arrive?',

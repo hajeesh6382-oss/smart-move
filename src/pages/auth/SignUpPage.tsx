@@ -225,11 +225,19 @@ export const SignUpPage: React.FC = () => {
           </button>
         </form>
 
-        <div className="text-center text-xs text-blue-800 mt-5 pt-4 border-t border-blue-100">
-          Already have an account?{' '}
-          <Link to="/auth/signin" className="font-bold text-blue-600 hover:underline">
-            Sign In here
-          </Link>
+        <div className="text-center text-xs text-blue-800 mt-5 pt-4 border-t border-blue-100 flex flex-col gap-2">
+          <div>
+            Already have a Citizen account?{' '}
+            <Link to="/auth/signin" className="font-bold text-blue-600 hover:underline">
+              Citizen Sign In
+            </Link>
+          </div>
+          <div>
+            City Authority Official?{' '}
+            <Link to="/auth/admin-signup" className="font-bold text-indigo-600 hover:underline">
+              Register Authority Account (Email OTP) ➔
+            </Link>
+          </div>
         </div>
       </div>
     </div>
