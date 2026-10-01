@@ -125,7 +125,7 @@ export const PredictiveTrafficAlertPanel: React.FC<PredictiveTrafficAlertPanelPr
 
         {/* Auto Dispatch Toggle */}
         <div className="flex items-center gap-2 bg-slate-900/90 p-2 rounded-2xl border border-slate-800">
-          <span className="text-xs text-slate-300 font-mono">Auto Alert (&ge;70%):</span>
+          <span className="text-xs text-slate-300 font-mono">Auto Alert (&gt;60%):</span>
           <button
             type="button"
             onClick={handleToggleAutoAlert}

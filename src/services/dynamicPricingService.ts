@@ -599,8 +599,8 @@ export function updateZoneCongestion(
     road_pricing_predictions: predictions,
   });
 
-  // Automatically dispatch predictive high-traffic Gmail alert to User and Admin if congestion >= 70%
-  if (newCongestionPct >= 70) {
+  // Automatically dispatch predictive high-traffic Gmail alert to User and Admin if congestion > 60%
+  if (newCongestionPct > 60) {
     trafficAlertService.checkAndDispatchIfHighTraffic(
       zoneId,
       zone.zone_name,

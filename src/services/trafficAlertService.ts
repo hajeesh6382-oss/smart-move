@@ -222,7 +222,7 @@ class TrafficAlertService {
   }
 
   /**
-   * Automatic Monitor: Checks if corridor congestion is >= 70% and dispatches alert with cooldown
+   * Automatic Monitor: Checks if corridor congestion is > 60% and dispatches alert with cooldown
    */
   public checkAndDispatchIfHighTraffic(
     corridorId: string,
@@ -231,7 +231,7 @@ class TrafficAlertService {
     congestionPct: number
   ): void {
     if (!this.isAutoAlertEnabled()) return;
-    if (congestionPct < 70) return;
+    if (congestionPct <= 60) return; // Dispatches alert whenever traffic is above 60%
 
     const now = Date.now();
     const lastSent = alertCooldownMap.get(corridorId) || 0;
@@ -250,19 +250,19 @@ class TrafficAlertService {
       ? 'Theni Old Bypass Arterial'
       : 'Madurai Outer Ring Road (Service Lane)';
 
-    const timeSaved = Math.round(12 + (congestionPct - 70) * 0.4);
+    const timeSaved = Math.round(10 + (congestionPct - 60) * 0.4);
 
     this.dispatchHighTrafficAlert({
       corridorName,
       roadName,
       congestionLevel: congestionPct,
-      expectedDelayMin: Math.round(15 + (congestionPct - 70) * 0.6),
+      expectedDelayMin: Math.round(12 + (congestionPct - 60) * 0.5),
       predictedHorizon: 'Next 15–30 minutes',
       alternativeRoute: altRoute,
       timeSavedMin: timeSaved,
       transitAlternative: 'Theni Express Bus 101 (Departs every 15 min)',
     }).then((res) => {
-      console.log('[TrafficAlertService] Automatic High Traffic Alert Triggered:', res);
+      console.log('[TrafficAlertService] Automatic High Traffic Alert Triggered (>60%):', res);
     });
   }
 }
