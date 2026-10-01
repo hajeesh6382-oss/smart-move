@@ -53,26 +53,33 @@ export default async function handler(req, res) {
     });
 
     const info = await transporter.sendMail({
-      from: `"SMARTMOVE Authority" <${user}>`,
+      from: `"SMARTMOVE Team" <${user}>`,
       to,
-      subject: `Your SMARTMOVE Verification Code: ${otpCode}`,
+      subject: `Your SMARTMOVE Verification Code`,
+      text: `Hello,\n\nYour SMARTMOVE verification code is ${otpCode}.\n\nUse this code to verify your account. This code will expire in 10 minutes.\n\nFor your security, please do not share this code with anyone. If you did not request this code, you can safely ignore this email.\n\nSMARTMOVE Team\nAI-Powered Smart & Sustainable Urban Mobility`,
       html: `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #030712; color: #f8fafc; padding: 36px; border-radius: 20px; border: 1px solid #1e293b; max-width: 500px; margin: 0 auto;">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <div style="display: inline-block; width: 48px; height: 48px; border-radius: 12px; background: #06b6d4; line-height: 48px; font-size: 24px; font-weight: 900; color: #030712;">S</div>
-            <h1 style="color: #06b6d4; font-size: 24px; margin: 12px 0 4px; font-weight: 800; letter-spacing: -0.5px;">SMARTMOVE Mobility</h1>
-            <p style="color: #94a3b8; font-size: 13px; margin: 0;">AI-Enabled Smart & Sustainable Urban Mobility Platform</p>
-          </div>
-          <div style="background: #0f172a; padding: 24px; border-radius: 16px; text-align: center; border: 1px solid #334155; margin-bottom: 24px;">
-            <p style="color: #94a3b8; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; margin-top: 0; margin-bottom: 12px; font-weight: 700;">One-Time Passcode</p>
-            <div style="font-size: 42px; font-weight: 900; letter-spacing: 10px; color: #10b981; font-family: monospace; padding: 4px 0;">
-              ${otpCode}
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #ffffff; color: #1e293b; padding: 32px 24px; max-width: 540px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+          <div style="margin-bottom: 24px;">
+            <p style="font-size: 15px; color: #1e293b; line-height: 1.6; margin: 0 0 16px 0;">Hello,</p>
+            <p style="font-size: 15px; color: #1e293b; line-height: 1.6; margin: 0 0 16px 0;">
+              Your SMARTMOVE verification code is <strong style="font-size: 20px; color: #0284c7; font-family: monospace; letter-spacing: 2px;">${otpCode}</strong>.
+            </p>
+            <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;">
+              <span style="font-size: 38px; font-weight: 800; letter-spacing: 8px; color: #0369a1; font-family: 'Courier New', Courier, monospace; display: block;">
+                ${otpCode}
+              </span>
             </div>
-            <p style="color: #64748b; font-size: 12px; margin-top: 12px; margin-bottom: 0;">Valid for 10 minutes • Never share this code</p>
+            <p style="font-size: 14px; color: #334155; line-height: 1.6; margin: 0 0 16px 0;">
+              Use this code to verify your account. This code will expire in 10 minutes.
+            </p>
+            <p style="font-size: 13px; color: #64748b; line-height: 1.6; margin: 0 0 24px 0;">
+              For your security, please do not share this code with anyone. If you did not request this code, you can safely ignore this email.
+            </p>
           </div>
-          <p style="color: #64748b; font-size: 12px; text-align: center; line-height: 1.5; margin: 0;">
-            If you did not request this verification code, please ignore this email or contact city transit support.
-          </p>
+          <div style="border-top: 1px solid #e2e8f0; padding-top: 20px;">
+            <p style="font-size: 14px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">SMARTMOVE Team</p>
+            <p style="font-size: 12px; color: #64748b; margin: 0;">AI-Powered Smart & Sustainable Urban Mobility</p>
+          </div>
         </div>
       `,
     });

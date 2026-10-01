@@ -115,25 +115,33 @@ export async function sendOtpToGmail(email: string): Promise<OtpDeliveryResult> 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'SMARTMOVE <onboarding@resend.dev>',
+          from: 'SMARTMOVE Team <onboarding@resend.dev>',
           to: [cleanEmail],
-          subject: `Your SMARTMOVE Verification Code: ${otp}`,
+          subject: `Your SMARTMOVE Verification Code`,
+          text: `Hello,\n\nYour SMARTMOVE verification code is ${otp}.\n\nUse this code to verify your account. This code will expire in 10 minutes.\n\nFor your security, please do not share this code with anyone. If you did not request this code, you can safely ignore this email.\n\nSMARTMOVE Team\nAI-Powered Smart & Sustainable Urban Mobility`,
           html: `
-            <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background: #030712; color: #f8fafc; border-radius: 16px; border: 1px solid #1e293b;">
-              <div style="text-align: center; margin-bottom: 20px;">
-                <h1 style="color: #06b6d4; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">SMARTMOVE</h1>
-                <p style="color: #94a3b8; font-size: 12px; margin-top: 4px;">AI-Enabled Smart & Sustainable Urban Mobility</p>
-              </div>
-              <div style="background: #0f172a; padding: 24px; border-radius: 12px; text-align: center; border: 1px solid #334155;">
-                <p style="font-size: 14px; color: #cbd5e1; margin-bottom: 12px;">Your 6-Digit Email Verification Code is:</p>
-                <div style="font-size: 34px; font-weight: 900; letter-spacing: 10px; color: #38bdf8; font-family: monospace; padding: 12px 0;">
-                  ${otp}
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #ffffff; color: #1e293b; padding: 32px 24px; max-width: 540px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+              <div style="margin-bottom: 24px;">
+                <p style="font-size: 15px; color: #1e293b; line-height: 1.6; margin: 0 0 16px 0;">Hello,</p>
+                <p style="font-size: 15px; color: #1e293b; line-height: 1.6; margin: 0 0 16px 0;">
+                  Your SMARTMOVE verification code is <strong style="font-size: 20px; color: #0284c7; font-family: monospace; letter-spacing: 2px;">${otp}</strong>.
+                </p>
+                <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;">
+                  <span style="font-size: 38px; font-weight: 800; letter-spacing: 8px; color: #0369a1; font-family: 'Courier New', Courier, monospace; display: block;">
+                    ${otp}
+                  </span>
                 </div>
-                <p style="font-size: 12px; color: #64748b; margin-top: 12px;">This code is valid for 10 minutes. Please do not share it with anyone.</p>
+                <p style="font-size: 14px; color: #334155; line-height: 1.6; margin: 0 0 16px 0;">
+                  Use this code to verify your account. This code will expire in 10 minutes.
+                </p>
+                <p style="font-size: 13px; color: #64748b; line-height: 1.6; margin: 0 0 24px 0;">
+                  For your security, please do not share this code with anyone. If you did not request this code, you can safely ignore this email.
+                </p>
               </div>
-              <p style="font-size: 11px; color: #64748b; text-align: center; margin-top: 20px;">
-                If you did not request this OTP verification, you can safely ignore this email.
-              </p>
+              <div style="border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                <p style="font-size: 14px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">SMARTMOVE Team</p>
+                <p style="font-size: 12px; color: #64748b; margin: 0;">AI-Powered Smart & Sustainable Urban Mobility</p>
+              </div>
             </div>
           `,
         }),
@@ -162,11 +170,11 @@ export async function sendOtpToGmail(email: string): Promise<OtpDeliveryResult> 
         'Accept': 'application/json',
       },
       body: JSON.stringify({
-        access_key: '557b7f2b-8a8a-40a1-a477-805c879d72ce', // Public SmartMove mailer access key
-        subject: `[SMARTMOVE] Your 6-Digit OTP Code: ${otp}`,
-        from_name: 'SMARTMOVE Urban Mobility',
+        access_key: '557b7f2b-8a8a-40a1-a477-805c879d72ce',
+        subject: `Your SMARTMOVE Verification Code`,
+        from_name: 'SMARTMOVE Team',
         to_email: cleanEmail,
-        message: `Your SMARTMOVE verification code is: ${otp}\n\nValid for 10 minutes.\nIf you did not request this code, ignore this message.`,
+        message: `Hello,\n\nYour SMARTMOVE verification code is ${otp}.\n\nUse this code to verify your account. This code will expire in 10 minutes.\n\nFor your security, please do not share this code with anyone. If you did not request this code, you can safely ignore this email.\n\nSMARTMOVE Team\nAI-Powered Smart & Sustainable Urban Mobility`,
         email: cleanEmail,
         otp_code: otp,
       }),
