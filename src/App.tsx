@@ -55,10 +55,22 @@ const queryClient = new QueryClient({
   },
 });
 
-// Admin Route Guard
+// Citizen Route Guard: If logged in as admin, strictly redirect to /admin
+const ProtectedCitizenRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  if (user && user.role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
+  return <>{children}</>;
+};
+
+// Admin Route Guard: Requires admin role; citizens redirect to /app, unauthenticated to /auth/admin-signin
 const ProtectedAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  if (user && user.role !== 'admin') {
+  if (!user) {
+    return <Navigate to="/auth/admin-signin" replace />;
+  }
+  if (user.role !== 'admin') {
     return <Navigate to="/app" replace />;
   }
   return <>{children}</>;
@@ -84,8 +96,15 @@ export const App: React.FC = () => {
             <Route path="/auth/admin-signup" element={<AdminSignUpPage />} />
             <Route path="/auth/verify-otp" element={<OtpVerifyPage />} />
 
-            {/* Citizen Protected Application Routes */}
-            <Route path="/app" element={<CitizenLayout />}>
+            {/* Citizen Application Routes - Restricted to Citizens */}
+            <Route
+              path="/app"
+              element={
+                <ProtectedCitizenRoute>
+                  <CitizenLayout />
+                </ProtectedCitizenRoute>
+              }
+            >
               <Route index element={<CitizenDashboard />} />
               <Route path="map" element={<LiveMapPage />} />
               <Route path="routes" element={<RoutePlannerPage />} />
@@ -119,6 +138,7 @@ export const App: React.FC = () => {
               <Route path="recommendations" element={<RecommendationsLogPage />} />
               <Route path="providers" element={<ProvidersHealthPage />} />
               <Route path="data-sources" element={<DataSourcesPanel />} />
+              <Route path="transit" element={<SmartTransitPage />} />
             </Route>
 
             {/* Fallback to Home */}

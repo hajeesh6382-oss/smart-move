@@ -61,6 +61,7 @@ export const ThreeBarSidebar: React.FC<ThreeBarSidebarProps> = ({ className = ''
     { to: '/admin/parking-control', label: 'Parking Occupancy Control', icon: <SquareParking className="w-4 h-4 text-indigo-600" /> },
     { to: '/admin/peak-manager', label: 'Peak-Hour Traffic Manager', icon: <Clock className="w-4 h-4 text-blue-600" /> },
     { to: '/admin/what-if', label: 'What-If AI Simulator', icon: <SlidersHorizontal className="w-4 h-4 text-purple-600" /> },
+    { to: '/admin/transit', label: 'Transit & redBus Integration', icon: <Bus className="w-4 h-4 text-rose-600" /> },
     { to: '/admin/schedules', label: 'Staggered Schedules', icon: <Calendar className="w-4 h-4 text-cyan-600" /> },
     { to: '/admin/signals', label: 'Signal Telemetry', icon: <TrafficCone className="w-4 h-4 text-amber-600" /> },
     { to: '/admin/emergency', label: 'Emergency Clearance', icon: <Siren className="w-4 h-4 text-red-600" /> },
@@ -125,75 +126,75 @@ export const ThreeBarSidebar: React.FC<ThreeBarSidebarProps> = ({ className = ''
 
         {/* Scrollable Navigation Topics */}
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          {/* 1. Citizen Mobility Suite */}
-          <div className="space-y-1.5">
-            <div className="text-[11px] font-mono uppercase font-bold text-blue-600 tracking-wider px-3 mb-2 flex items-center justify-between">
-              <span>Citizen Mobility Portal</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            </div>
-
-            <nav className="space-y-1">
-              {citizenTopics.map((item) => {
-                const isActive = location.pathname === item.to;
-                return (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    onClick={closeSidebar}
-                    className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                      isActive
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-bold'
-                        : 'text-blue-950 hover:bg-blue-50 hover:text-blue-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className={isActive ? 'text-white' : ''}>{item.icon}</span>
-                      <span>{item.label}</span>
-                    </div>
-                    {isActive ? <CheckCircle2 className="w-3.5 h-3.5 text-white" /> : <ChevronRight className="w-3.5 h-3.5 text-blue-300" />}
-                  </NavLink>
-                );
-              })}
-            </nav>
-          </div>
-
-          {/* 2. Admin Command Center (Password / OTP Protected) */}
-          <div className="space-y-1.5 pt-4 border-t border-blue-100">
-            <div className="text-[11px] font-mono uppercase font-bold text-indigo-700 tracking-wider px-3 mb-2 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <Lock className="w-3 h-3 text-indigo-600" /> Admin Command (Protected)
-              </span>
-              {isAdmin && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-800 font-bold">
-                  VERIFIED
+          {/* Admin view only when logged in as admin */}
+          {isAdmin || user?.role === 'admin' ? (
+            <div className="space-y-1.5">
+              <div className="text-[11px] font-mono uppercase font-bold text-indigo-700 tracking-wider px-3 mb-2 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Lock className="w-3 h-3 text-indigo-600" /> Admin Command Operations
                 </span>
-              )}
-            </div>
+                <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-800 font-bold">
+                  VERIFIED ADMIN
+                </span>
+              </div>
 
-            <nav className="space-y-1">
-              {adminTopics.map((item) => {
-                const isActive = location.pathname === item.to;
-                return (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    onClick={closeSidebar}
-                    className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
-                      isActive
-                        ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/25'
-                        : 'text-slate-700 hover:bg-indigo-50 hover:text-indigo-900'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className={isActive ? 'text-white' : ''}>{item.icon}</span>
-                      <span>{item.label}</span>
-                    </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-                  </NavLink>
-                );
-              })}
-            </nav>
-          </div>
+              <nav className="space-y-1">
+                {adminTopics.map((item) => {
+                  const isActive = location.pathname === item.to;
+                  return (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      onClick={closeSidebar}
+                      className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                        isActive
+                          ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/25'
+                          : 'text-slate-700 hover:bg-indigo-50 hover:text-indigo-900'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className={isActive ? 'text-white' : ''}>{item.icon}</span>
+                        <span>{item.label}</span>
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                    </NavLink>
+                  );
+                })}
+              </nav>
+            </div>
+          ) : (
+            /* Citizen view only for citizens and guests */
+            <div className="space-y-1.5">
+              <div className="text-[11px] font-mono uppercase font-bold text-blue-600 tracking-wider px-3 mb-2 flex items-center justify-between">
+                <span>Citizen Mobility Portal</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              </div>
+
+              <nav className="space-y-1">
+                {citizenTopics.map((item) => {
+                  const isActive = location.pathname === item.to;
+                  return (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      onClick={closeSidebar}
+                      className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                        isActive
+                          ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 font-bold'
+                          : 'text-blue-950 hover:bg-blue-50 hover:text-blue-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className={isActive ? 'text-white' : ''}>{item.icon}</span>
+                        <span>{item.label}</span>
+                      </div>
+                      {isActive ? <CheckCircle2 className="w-3.5 h-3.5 text-white" /> : <ChevronRight className="w-3.5 h-3.5 text-blue-300" />}
+                    </NavLink>
+                  );
+                })}
+              </nav>
+            </div>
+          )}
         </div>
 
         {/* Drawer Footer with User Session & Sign Out */}

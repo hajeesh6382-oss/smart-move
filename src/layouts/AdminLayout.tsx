@@ -37,6 +37,7 @@ import {
   Coins,
   Shield,
   Lock,
+  Bus,
 } from 'lucide-react';
 
 export const AdminLayout: React.FC = () => {
@@ -59,6 +60,7 @@ export const AdminLayout: React.FC = () => {
     { to: '/admin/parking-control', label: 'Parking Occupancy', icon: <SquareParking className="w-4 h-4 text-indigo-600" /> },
     { to: '/admin/peak-manager', label: 'Peak-Hour Manager', icon: <Clock className="w-4 h-4 text-blue-600" /> },
     { to: '/admin/what-if', label: 'What-If Simulator', icon: <SlidersHorizontal className="w-4 h-4 text-purple-600" /> },
+    { to: '/admin/transit', label: 'Transit & redBus Integration', icon: <Bus className="w-4 h-4 text-rose-600" /> },
     { to: '/admin/schedules', label: 'Schedule Intel', icon: <Calendar className="w-4 h-4 text-cyan-600" /> },
     { to: '/admin/signals', label: 'Signal Telemetry', icon: <TrafficCone className="w-4 h-4 text-amber-600" /> },
     { to: '/admin/emergency', label: 'Emergency Corridors', icon: <Siren className="w-4 h-4 text-red-600" /> },

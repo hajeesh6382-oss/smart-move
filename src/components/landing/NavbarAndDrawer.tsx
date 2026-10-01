@@ -60,7 +60,8 @@ export const NavbarAndDrawer: React.FC<NavbarAndDrawerProps> = ({
     }
     if (item.route) {
       if (item.route.startsWith('/app') && !user) {
-        signInAsDemo('citizen');
+        navigate('/auth/signin');
+        return;
       }
       navigate(item.route);
     }
@@ -68,9 +69,14 @@ export const NavbarAndDrawer: React.FC<NavbarAndDrawerProps> = ({
 
   const handleLaunchApp = () => {
     if (!user) {
-      signInAsDemo('citizen');
+      navigate('/auth/signin');
+      return;
     }
-    navigate('/app');
+    if (user.role === 'admin') {
+      navigate('/admin');
+    } else {
+      navigate('/app');
+    }
   };
 
   return (
@@ -372,7 +378,10 @@ export const NavbarAndDrawer: React.FC<NavbarAndDrawerProps> = ({
                     key={idx}
                     onClick={() => {
                       setDrawerOpen(false);
-                      if (!user) signInAsDemo('citizen');
+                      if (!user) {
+                        navigate('/auth/signin');
+                        return;
+                      }
                       navigate(item.path);
                     }}
                     className="w-full p-3.5 rounded-2xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-cyan-500/40 flex items-center justify-between text-left transition-all group cursor-pointer"

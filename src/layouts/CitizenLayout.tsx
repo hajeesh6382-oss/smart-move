@@ -125,16 +125,7 @@ export const CitizenLayout: React.FC = () => {
             <LanguageSwitcher compact />
 
             {/* Admin Switcher for rapid demo evaluation */}
-            {isAdmin && (
-              <button
-                onClick={() => navigate('/admin')}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-900 border border-indigo-200 text-xs font-bold hover:bg-indigo-100 transition-all cursor-pointer"
-                title="Switch to Admin Command Center"
-              >
-                <Shield className="w-3.5 h-3.5 text-indigo-700" />
-                <span className="hidden md:inline">Command Center</span>
-              </button>
-            )}
+
 
             {user ? (
               <div className="flex items-center gap-2 pl-2 border-l border-blue-200">

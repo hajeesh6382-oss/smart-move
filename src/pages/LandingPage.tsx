@@ -32,8 +32,7 @@ export const LandingPage: React.FC = () => {
   }, []);
 
   const handleLaunchCitizen = () => {
-    signInAsDemo('citizen');
-    navigate('/app');
+    navigate('/auth/signin');
   };
 
   return (
@@ -89,11 +88,7 @@ export const LandingPage: React.FC = () => {
             {/* Primary CTA: PLAN YOUR JOURNEY */}
             <button
               onClick={() => {
-                if (user) {
-                  navigate('/app/routes');
-                } else {
-                  navigate('/auth/signin');
-                }
+                navigate('/auth/signin');
               }}
               className="px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-sm sm:text-base shadow-2xl shadow-cyan-500/35 hover:shadow-cyan-500/50 hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 cursor-pointer border border-cyan-300/40"
             >
@@ -104,8 +99,11 @@ export const LandingPage: React.FC = () => {
             {/* Secondary CTA: EXPLORE LIVE MAP */}
             <button
               onClick={() => {
-                signInAsDemo('citizen');
-                navigate('/app/map');
+                if (user) {
+                  navigate('/app/map');
+                } else {
+                  navigate('/auth/signin');
+                }
               }}
               className="px-7 py-4 rounded-2xl bg-slate-900/80 hover:bg-slate-850 text-cyan-300 hover:text-white border border-cyan-500/40 hover:border-cyan-400 font-bold text-sm sm:text-base shadow-xl backdrop-blur-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 cursor-pointer"
             >
@@ -116,8 +114,11 @@ export const LandingPage: React.FC = () => {
             {/* Route & ERP Planner Button */}
             <button
               onClick={() => {
-                if (!user) signInAsDemo('citizen');
-                navigate('/app/routes');
+                if (user) {
+                  navigate('/app/routes');
+                } else {
+                  navigate('/auth/signin');
+                }
               }}
               className="px-6 py-4 rounded-2xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 border border-indigo-500/40 font-bold text-sm sm:text-base shadow-xl backdrop-blur-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
             >
