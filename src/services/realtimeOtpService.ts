@@ -95,31 +95,7 @@ class RealtimeOtpService {
       console.warn('[RealtimeOtp] Storage error:', e);
     }
 
-    // 2. Persist to real Supabase database
-    try {
-      const { data, error } = await supabase.from('realtime_otps').insert([
-        {
-          recipient,
-          otp_code: otpCode,
-          channel,
-          status: 'pending',
-          attempts: 0,
-          metadata: record.metadata,
-          expires_at: expiresAt,
-          created_at: createdAt,
-        },
-      ]).select();
-
-      if (error) {
-        console.warn('[RealtimeOtp] Supabase DB insert notice:', error.message);
-      } else if (data && data[0]) {
-        record.id = data[0].id;
-      }
-    } catch (dbErr) {
-      console.warn('[RealtimeOtp] DB sync error:', dbErr);
-    }
-
-    // 3. Broadcast real-time in-app notification event
+    // 2. Broadcast real-time in-app notification event immediately
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent('SMARTMOVE_REALTIME_OTP', {
@@ -133,28 +109,49 @@ class RealtimeOtpService {
       );
     }
 
-    // 4. If mobile phone, dispatch cellular SMS directly to physical phone via Fast2SMS
-    if (channel === 'sms' || !recipient.includes('@')) {
-      await this.dispatchCellularSmsFast2Sms(recipient, otpCode);
-    }
+    // 3. Parallel asynchronous dispatch: Persist to DB + Send Email in parallel
+    const dbPromise = (async () => {
+      try {
+        const { data, error } = await supabase.from('realtime_otps').insert([
+          {
+            recipient,
+            otp_code: otpCode,
+            channel,
+            status: 'pending',
+            attempts: 0,
+            metadata: record.metadata,
+            expires_at: expiresAt,
+            created_at: createdAt,
+          },
+        ]).select();
 
-    // 5. If email, dispatch via Gmail SMTP, Resend API and native Supabase
-    if (channel === 'email' || recipient.includes('@')) {
-      const gmailSuccess = await this.dispatchEmailViaGmailSmtp(recipient, otpCode);
-      if (!gmailSuccess) {
-        await this.dispatchEmailViaResend(recipient, otpCode);
-      }
-      if (isRealSupabaseConfigured) {
-        try {
-          await supabase.auth.signInWithOtp({
-            email: recipient,
-            options: { shouldCreateUser: true },
-          });
-        } catch (authErr) {
-          console.warn('[RealtimeOtp] Supabase email auth notice:', authErr);
+        if (error) {
+          console.warn('[RealtimeOtp] Supabase DB insert notice:', error.message);
+        } else if (data && data[0]) {
+          record.id = data[0].id;
         }
+      } catch (dbErr) {
+        console.warn('[RealtimeOtp] DB sync error:', dbErr);
       }
-    }
+    })();
+
+    const dispatchPromise = (async () => {
+      if (channel === 'email' || recipient.includes('@')) {
+        // Parallel dispatch via Gmail SMTP & Resend for instant inbox arrival
+        await Promise.allSettled([
+          this.dispatchEmailViaGmailSmtp(recipient, otpCode),
+          this.dispatchEmailViaResend(recipient, otpCode),
+        ]);
+      } else {
+        await this.dispatchCellularSmsFast2Sms(recipient, otpCode);
+      }
+    })();
+
+    // Await with responsive ceiling so UI transitions in < 800ms while delivery continues
+    await Promise.race([
+      Promise.all([dbPromise, dispatchPromise]),
+      new Promise((resolve) => setTimeout(resolve, 800)),
+    ]);
 
     // 6. Trigger native mobile/browser system notification
     if (typeof window !== 'undefined' && 'Notification' in window) {

@@ -1,5 +1,31 @@
 import nodemailer from 'nodemailer';
 
+// Cached singleton pooled transporter to avoid repeated TLS handshake latency
+let cachedTransporter = null;
+
+function getTransporter() {
+  if (cachedTransporter) return cachedTransporter;
+  const user = process.env.VITE_GMAIL_USER || process.env.GMAIL_USER || 'hajeesh6382@gmail.com';
+  const pass = (
+    process.env.VITE_GMAIL_APP_PASSWORD ||
+    process.env.GMAIL_APP_PASSWORD ||
+    'ftphxknjhtqenguz'
+  ).replace(/\s+/g, '');
+
+  cachedTransporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user,
+      pass,
+    },
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    rateLimit: 14,
+  });
+  return cachedTransporter;
+}
+
 export default async function handler(req, res) {
   // CORS configuration
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -38,19 +64,7 @@ export default async function handler(req, res) {
     }
 
     const user = process.env.VITE_GMAIL_USER || process.env.GMAIL_USER || 'hajeesh6382@gmail.com';
-    const pass = (
-      process.env.VITE_GMAIL_APP_PASSWORD ||
-      process.env.GMAIL_APP_PASSWORD ||
-      'ftphxknjhtqenguz'
-    ).replace(/\s+/g, '');
-
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user,
-        pass,
-      },
-    });
+    const transporter = getTransporter();
 
     const info = await transporter.sendMail({
       from: `"SMARTMOVE Team" <${user}>`,
