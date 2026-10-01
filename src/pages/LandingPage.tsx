@@ -89,8 +89,11 @@ export const LandingPage: React.FC = () => {
             {/* Primary CTA: PLAN YOUR JOURNEY */}
             <button
               onClick={() => {
-                signInAsDemo('citizen');
-                navigate('/app/routes');
+                if (user) {
+                  navigate('/app/routes');
+                } else {
+                  navigate('/auth/signin');
+                }
               }}
               className="px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-sm sm:text-base shadow-2xl shadow-cyan-500/35 hover:shadow-cyan-500/50 hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 cursor-pointer border border-cyan-300/40"
             >

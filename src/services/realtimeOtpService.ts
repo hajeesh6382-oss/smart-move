@@ -474,14 +474,22 @@ class RealtimeOtpService {
         body: JSON.stringify({ to: email, otpCode }),
       });
       if (res.ok) {
-        const data = await res.json();
-        if (data && data.success) {
-          console.log('[Gmail SMTP] Successfully sent real OTP to', email);
-          return true;
+        const text = await res.text();
+        try {
+          const data = JSON.parse(text);
+          if (data && data.success) {
+            console.log('[Gmail SMTP] Successfully sent real OTP to', email);
+            return true;
+          }
+        } catch {
+          console.warn('[Gmail SMTP] Received non-JSON response from server');
         }
+      } else {
+        const errText = await res.text().catch(() => '');
+        console.warn(`[Gmail SMTP] HTTP ${res.status}:`, errText);
       }
     } catch (e) {
-      // ignore
+      console.warn('[Gmail SMTP] Dispatch network error:', e);
     }
     return false;
   }
