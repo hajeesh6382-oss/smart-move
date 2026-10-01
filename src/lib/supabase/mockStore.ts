@@ -738,6 +738,27 @@ class ReactiveCityStore {
     this.broadcast();
   }
 
+  public addAlert(alert: {
+    title: string;
+    message: string;
+    severity?: 'info' | 'warning' | 'critical';
+    category?: string;
+  }) {
+    const newAlert = {
+      id: 'alt_' + Date.now(),
+      title: alert.title,
+      message: alert.message,
+      severity: alert.severity || 'warning',
+      category: alert.category || 'traffic',
+      read: false,
+      created_at: new Date().toISOString(),
+    };
+    this.state.alerts = [newAlert, ...(this.state.alerts || [])];
+    this.notify('alerts');
+    this.broadcast();
+    return newAlert;
+  }
+
   private startSimTicker() {
     if (this.tickInterval) clearInterval(this.tickInterval);
     this.tickInterval = setInterval(() => {

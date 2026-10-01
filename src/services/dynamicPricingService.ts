@@ -5,6 +5,7 @@
 // peak/off-peak multipliers, emergency overrides, and real-time reactive event broadcasts.
 
 import { cityStore } from '../lib/supabase/mockStore';
+import { trafficAlertService } from './trafficAlertService';
 
 export interface RoadPricingZone {
   id: string;
@@ -597,6 +598,16 @@ export function updateZoneCongestion(
     road_pricing_live: updatedList,
     road_pricing_predictions: predictions,
   });
+
+  // Automatically dispatch predictive high-traffic Gmail alert to User and Admin if congestion >= 70%
+  if (newCongestionPct >= 70) {
+    trafficAlertService.checkAndDispatchIfHighTraffic(
+      zoneId,
+      zone.zone_name,
+      zone.road_name,
+      newCongestionPct
+    );
+  }
 
   // Dispatch custom browser event for live UI animations & notifications
   if (typeof window !== 'undefined') {

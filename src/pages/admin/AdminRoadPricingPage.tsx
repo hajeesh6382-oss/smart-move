@@ -42,6 +42,7 @@ import {
   ZonePricingOverride,
 } from '../../services/dynamicPricingService';
 import { AdminRoadPricingMap } from '../../components/admin/AdminRoadPricingMap';
+import { PredictiveTrafficAlertPanel } from '../../components/ui/PredictiveTrafficAlertPanel';
 
 export const AdminRoadPricingPage: React.FC = () => {
   const { data: rawZones } = useRealtimeTable('road_pricing_zones');
@@ -356,6 +357,9 @@ export const AdminRoadPricingPage: React.FC = () => {
             }}
           />
         </div>
+
+        {/* FEATURE: Predictive High-Traffic Gmail Alert & Re-routing Command System */}
+        <PredictiveTrafficAlertPanel />
 
         {/* Zones / Places Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

@@ -6,6 +6,7 @@ import { cityStore } from '../../lib/supabase/mockStore';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { SourceBadge } from '../../components/ui/SourceBadge';
 import { Bell, Check, Trash2, CheckCircle2, AlertTriangle, Info } from 'lucide-react';
+import { PredictiveTrafficAlertPanel } from '../../components/ui/PredictiveTrafficAlertPanel';
 
 export const AlertsPage: React.FC = () => {
   const { data: alerts } = useRealtimeTable('alerts');
@@ -37,6 +38,9 @@ export const AlertsPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* FEATURE: Predictive High-Traffic Gmail Alert & Re-routing Advisory Panel */}
+      <PredictiveTrafficAlertPanel />
 
       {/* Alerts Feed */}
       <div className="space-y-3">
