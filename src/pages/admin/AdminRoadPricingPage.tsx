@@ -16,6 +16,13 @@ import {
   Activity,
   Flame,
   Radio,
+  MapPin,
+  Plus,
+  Lock,
+  Unlock,
+  Edit3,
+  X,
+  Check,
 } from 'lucide-react';
 import {
   DEFAULT_ZONES,
@@ -28,6 +35,11 @@ import {
   getPricingThresholds,
   updatePricingThresholds,
   PricingThresholdConfig,
+  getZonePricingOverrides,
+  setZoneFixedPrice,
+  getAllZonesWithOverrides,
+  addCustomPricingPlace,
+  ZonePricingOverride,
 } from '../../services/dynamicPricingService';
 
 export const AdminRoadPricingPage: React.FC = () => {
@@ -36,11 +48,24 @@ export const AdminRoadPricingPage: React.FC = () => {
   const { data: rawPredictions } = useRealtimeTable('road_pricing_predictions');
 
   const [isTestMode, setIsTestMode] = useState<boolean>(getRoadPricingTestMode());
-  const [selectedZoneId, setSelectedZoneId] = useState<string>('zone_central_arterial');
+  const [selectedZoneId, setSelectedZoneId] = useState<string>('zone_theni_gateway');
   const [manualCongestion, setManualCongestion] = useState<number>(65);
   const [thresholds, setThresholds] = useState<PricingThresholdConfig>(getPricingThresholds());
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
   const [activeScenario, setActiveScenario] = useState<string | null>(null);
+
+  // Admin Place-by-Place Price Fixing State
+  const [overrides, setOverrides] = useState<Record<string, ZonePricingOverride>>(getZonePricingOverrides());
+  const [priceInputs, setPriceInputs] = useState<Record<string, number>>({});
+  const [fixSuccessMsg, setFixSuccessMsg] = useState<string | null>(null);
+  const [isAddPlaceOpen, setIsAddPlaceOpen] = useState(false);
+  const [newPlace, setNewPlace] = useState({
+    name: '',
+    road: '',
+    fixedPrice: 25,
+    minCharge: 0,
+    maxCharge: 60,
+  });
 
   // Price change audit log in admin session
   const [auditLog, setAuditLog] = useState<Array<{
@@ -81,9 +106,55 @@ export const AdminRoadPricingPage: React.FC = () => {
     return () => window.removeEventListener('smartmove_pricing_updated', handlePricingEvent);
   }, []);
 
-  const zones: RoadPricingZone[] = (rawZones && rawZones.length > 0) ? rawZones : DEFAULT_ZONES;
+  const zones: RoadPricingZone[] = (rawZones && rawZones.length > 0) ? rawZones : getAllZonesWithOverrides();
   const liveRecords: RoadPricingLiveRecord[] = (rawLive && rawLive.length > 0) ? rawLive : [];
   const predictions: RoadPricingPrediction[] = (rawPredictions && rawPredictions.length > 0) ? rawPredictions : [];
+
+  const handleFixPriceForZone = (zone: RoadPricingZone, price: number) => {
+    setZoneFixedPrice(zone.id, zone.zone_name, price, 'fixed');
+    setOverrides(getZonePricingOverrides());
+    setFixSuccessMsg(`ERP Toll price for "${zone.zone_name}" successfully fixed at ₹${price}. Active on live citizen maps!`);
+    setTimeout(() => setFixSuccessMsg(null), 4500);
+  };
+
+  const handleResetToDynamic = (zone: RoadPricingZone) => {
+    setZoneFixedPrice(zone.id, zone.zone_name, 0, 'dynamic');
+    setOverrides(getZonePricingOverrides());
+    setFixSuccessMsg(`ERP Toll price for "${zone.zone_name}" reset to AI Dynamic calculation.`);
+    setTimeout(() => setFixSuccessMsg(null), 4500);
+  };
+
+  const handleCreateNewPlace = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPlace.name.trim() || !newPlace.road.trim()) return;
+
+    const newId = `zone_${newPlace.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${Date.now().toString().slice(-4)}`;
+    const zone: RoadPricingZone = {
+      id: newId,
+      zone_name: newPlace.name.trim(),
+      road_name: newPlace.road.trim(),
+      geometry: [
+        { lat: 10.005 + (Math.random() - 0.5) * 0.05, lng: 77.48 + (Math.random() - 0.5) * 0.05 },
+        { lat: 10.015 + (Math.random() - 0.5) * 0.05, lng: 77.49 + (Math.random() - 0.5) * 0.05 },
+        { lat: 10.01 + (Math.random() - 0.5) * 0.05, lng: 77.50 + (Math.random() - 0.5) * 0.05 },
+        { lat: 10.0 + (Math.random() - 0.5) * 0.05, lng: 77.485 + (Math.random() - 0.5) * 0.05 },
+      ],
+      min_charge: newPlace.minCharge || 0,
+      max_charge: newPlace.maxCharge || 60,
+      peak_multiplier: 1.25,
+      offpeak_multiplier: 0.8,
+      status: 'active',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    addCustomPricingPlace(zone, Number(newPlace.fixedPrice));
+    setOverrides(getZonePricingOverrides());
+    setIsAddPlaceOpen(false);
+    setNewPlace({ name: '', road: '', fixedPrice: 25, minCharge: 0, maxCharge: 60 });
+    setFixSuccessMsg(`New ERP Toll Gantry "${zone.zone_name}" added and price fixed at ₹${newPlace.fixedPrice}!`);
+    setTimeout(() => setFixSuccessMsg(null), 4500);
+  };
 
   const handleToggleTestMode = (enabled: boolean) => {
     setIsTestMode(enabled);
@@ -213,6 +284,260 @@ export const AdminRoadPricingPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* ADMIN EXCLUSIVE: Place-by-Place ERP Price Fixer & Authority Controls */}
+      <div className="glass-panel p-6 rounded-3xl border-2 border-amber-500/40 bg-gradient-to-br from-slate-950 via-slate-900 to-[#131b2e] shadow-2xl space-y-5 text-white">
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center justify-center shadow-inner">
+              <Coins className="w-6 h-6 text-amber-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-mono uppercase font-bold text-amber-400 tracking-wider">
+                  Transport Authority Rights
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-[10px] font-bold border border-amber-500/30">
+                  PLACE-BY-PLACE PRICING
+                </span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black font-display text-white mt-0.5">
+                Place-by-Place ERP Price Fixer & Corridor Governance
+              </h2>
+              <p className="text-xs text-slate-300 max-w-2xl mt-1">
+                Admin has full statutory rights to fix the ERP toll price for any specific place or corridor, or toggle between AI Dynamic prediction and Enforced Fixed Rates.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsAddPlaceOpen(true)}
+            className="px-4 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/20 flex items-center gap-1.5 transition-all cursor-pointer transform hover:-translate-y-0.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New Toll Gantry / Place</span>
+          </button>
+        </div>
+
+        {/* Success Notice Banner */}
+        {fixSuccessMsg && (
+          <div className="p-3.5 rounded-2xl bg-emerald-950/70 border border-emerald-500/50 text-emerald-300 text-xs font-semibold flex items-center gap-2.5 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{fixSuccessMsg}</span>
+          </div>
+        )}
+
+        {/* Zones / Places Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {zones.map((zone) => {
+            const override = overrides[zone.id];
+            const isFixed = override && override.pricingMode === 'fixed';
+            const live = liveRecords.find((r) => r.zone_id === zone.id);
+            const currentCharge = isFixed ? override.fixedRate : (live ? live.current_charge : 15);
+            const inputVal = priceInputs[zone.id] !== undefined ? priceInputs[zone.id] : currentCharge;
+
+            return (
+              <div
+                key={zone.id}
+                className={`p-5 rounded-3xl border transition-all space-y-4 ${
+                  isFixed
+                    ? 'bg-amber-950/20 border-amber-500/50 shadow-lg shadow-amber-500/5'
+                    : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                {/* Zone Header */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-amber-400 shrink-0" />
+                      <h3 className="font-bold text-white text-sm font-display">{zone.zone_name}</h3>
+                    </div>
+                    <div className="text-xs text-slate-400 font-mono pl-6">{zone.road_name}</div>
+                  </div>
+
+                  {/* Mode Badge */}
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase border shrink-0 flex items-center gap-1 ${
+                      isFixed
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                        : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                    }`}
+                  >
+                    {isFixed ? <Lock className="w-3 h-3 text-amber-400" /> : <Sparkles className="w-3 h-3 text-emerald-400" />}
+                    <span>{isFixed ? `Fixed: ₹${override.fixedRate}` : `AI Rate: ₹${currentCharge}`}</span>
+                  </span>
+                </div>
+
+                {/* Price Setting Box */}
+                <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400 font-mono text-[11px] uppercase font-bold">
+                      Set Fixed Price to Enforce:
+                    </span>
+                    <span className="text-2xl font-black font-mono text-amber-400">₹{inputVal}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-2 text-slate-500 text-xs font-mono">₹</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="250"
+                        value={inputVal}
+                        onChange={(e) =>
+                          setPriceInputs({
+                            ...priceInputs,
+                            [zone.id]: Math.max(0, parseInt(e.target.value, 10) || 0),
+                          })
+                        }
+                        className="w-full bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-xl pl-7 pr-3 py-1.5 text-xs text-white font-mono font-bold focus:outline-none"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleFixPriceForZone(zone, inputVal)}
+                      className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all cursor-pointer flex items-center gap-1 shrink-0"
+                      title="Save and fix this price in place"
+                    >
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Fix Price</span>
+                    </button>
+
+                    {isFixed && (
+                      <button
+                        type="button"
+                        onClick={() => handleResetToDynamic(zone)}
+                        className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs transition-colors cursor-pointer"
+                        title="Reset this place to AI Dynamic calculation"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Vehicle Rates Breakdown Pill */}
+                  <div className="pt-2 border-t border-slate-800/80 grid grid-cols-4 gap-1 text-center font-mono text-[10px]">
+                    <div className="bg-slate-900 p-1.5 rounded-lg border border-slate-800">
+                      <span className="text-slate-400 block">Cars</span>
+                      <strong className="text-white font-bold">₹{inputVal}</strong>
+                    </div>
+                    <div className="bg-slate-900 p-1.5 rounded-lg border border-slate-800">
+                      <span className="text-slate-400 block">Cabs</span>
+                      <strong className="text-cyan-300 font-bold">₹{Math.round(inputVal * 1.5)}</strong>
+                    </div>
+                    <div className="bg-slate-900 p-1.5 rounded-lg border border-slate-800">
+                      <span className="text-slate-400 block">Buses</span>
+                      <strong className="text-purple-300 font-bold">₹{Math.round(inputVal * 2.5)}</strong>
+                    </div>
+                    <div className="bg-slate-900 p-1.5 rounded-lg border border-slate-800">
+                      <span className="text-slate-400 block">2-Wheeler</span>
+                      <strong className="text-emerald-300 font-bold">₹{Math.round(inputVal * 0.4)}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* MODAL: Add New ERP Toll Gantry / Place */}
+      {isAddPlaceOpen && (
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <form
+            onSubmit={handleCreateNewPlace}
+            className="bg-slate-900 border border-amber-500/40 rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl animate-in zoom-in-95 text-white"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-amber-400" />
+                <h3 className="font-bold text-white text-base font-display">
+                  Add New ERP Road Pricing Gantry / Place
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddPlaceOpen(false)}
+                className="text-slate-400 hover:text-white p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Gantry / Place Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Theni North Junction Gantry, Kodaikanal Ghat Toll"
+                  value={newPlace.name}
+                  onChange={(e) => setNewPlace({ ...newPlace, name: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl px-3.5 py-2 text-white focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Road / Highway Corridor</label>
+                <input
+                  type="text"
+                  placeholder="e.g. NH-85 Expressway Km 12.4"
+                  value={newPlace.road}
+                  onChange={(e) => setNewPlace({ ...newPlace, road: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl px-3.5 py-2 text-white focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Initial Fixed Price (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="300"
+                    value={newPlace.fixedPrice}
+                    onChange={(e) => setNewPlace({ ...newPlace, fixedPrice: parseInt(e.target.value, 10) || 0 })}
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl px-3.5 py-2 text-white focus:outline-none font-mono"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Max Toll Cap (₹)</label>
+                  <input
+                    type="number"
+                    min="10"
+                    max="500"
+                    value={newPlace.maxCharge}
+                    onChange={(e) => setNewPlace({ ...newPlace, maxCharge: parseInt(e.target.value, 10) || 60 })}
+                    className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl px-3.5 py-2 text-white focus:outline-none font-mono"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsAddPlaceOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shadow-md shadow-amber-500/20 cursor-pointer"
+              >
+                Create & Fix Place Price
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Real-Time Interactive Test Scenarios Runner */}
       <div className="glass-panel p-5 rounded-3xl border border-rose-500/30 bg-slate-950/80 shadow-xl space-y-4">

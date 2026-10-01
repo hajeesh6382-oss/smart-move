@@ -37,7 +37,17 @@ import {
   Check,
   Shield,
   Radio,
+  Upload,
+  FileText,
+  Database,
+  Plus,
+  Trash2,
+  Layers,
 } from 'lucide-react';
+import {
+  TransitPartnerIntegration,
+  DEFAULT_PARTNER_INTEGRATIONS,
+} from '../../services/busBookingService';
 
 const REDBUS_DEFAULT_URL =
   'https://www.redbus.in/?utm_source=bing&utm_medium=cpc&utm_campaign=IN-Brand-KWs-South%20Zone&utm_adgroup=%5Bredbus%5D-Exact&utm_keyword=redbus&msclkid=3bb856d2536d1acc956e3c6fe230c79b&utm_term=redbus&utm_content=%5Bredbus%5D-Exact';
@@ -50,6 +60,9 @@ export const SmartTransitPage: React.FC = () => {
 
   // Integrated redBus & Admin Partner Integration state
   const [isRedBusModalOpen, setIsRedBusModalOpen] = useState(false);
+  const [activeModalUrl, setActiveModalUrl] = useState(REDBUS_DEFAULT_URL);
+  const [activeModalTitle, setActiveModalTitle] = useState('redBus Official Portal');
+
   const [redBusPartnerUrl, setRedBusPartnerUrl] = useState(() => {
     return localStorage.getItem('smartmove_redbus_url') || REDBUS_DEFAULT_URL;
   });
@@ -60,6 +73,26 @@ export const SmartTransitPage: React.FC = () => {
   const [adminUrlInput, setAdminUrlInput] = useState(redBusPartnerUrl);
   const [adminSaveMsg, setAdminSaveMsg] = useState<string | null>(null);
   const [handshakeStatus, setHandshakeStatus] = useState<'idle' | 'testing' | 'success'>('idle');
+
+  // Admin Hub Tabs
+  const [adminTab, setAdminTab] = useState<'dataset' | 'partners' | 'gateway'>('dataset');
+
+  // Transit Dataset Upload State (know what bus will come when)
+  const [csvInput, setCsvInput] = useState(() => busBookingService.getSampleCsvDataset());
+  const [datasetNotice, setDatasetNotice] = useState<string | null>(null);
+  const [uploadedCount, setUploadedCount] = useState(() => busBookingService.getUploadedBusDataset().length);
+
+  // Partner Integration Websites State
+  const [partnerIntegrations, setPartnerIntegrations] = useState<TransitPartnerIntegration[]>(() =>
+    busBookingService.getTransitPartnerIntegrations()
+  );
+  const [isAddPartnerOpen, setIsAddPartnerOpen] = useState(false);
+  const [newPartner, setNewPartner] = useState({
+    name: '',
+    url: '',
+    category: 'bus' as 'bus' | 'train' | 'metro',
+    description: '',
+  });
 
   // Search state
   const [fromCity, setFromCity] = useState('Theni');
@@ -140,6 +173,89 @@ export const SmartTransitPage: React.FC = () => {
     }
   };
 
+  // Dataset Upload Handlers
+  const handleUploadCsv = () => {
+    if (!csvInput.trim()) return;
+    const res = busBookingService.uploadBusDatasetFromCsv(csvInput);
+    if (res.success) {
+      setUploadedCount(res.count);
+      setDatasetNotice(`✅ Successfully parsed & active: ${res.count} bus schedule routes! Search any corridor below to see what bus will come when.`);
+      executeSearch();
+      setTimeout(() => setDatasetNotice(null), 5000);
+    } else {
+      setDatasetNotice(`❌ Import error: ${res.error}`);
+    }
+  };
+
+  const handleClearDataset = () => {
+    busBookingService.clearUploadedDataset();
+    setUploadedCount(0);
+    setDatasetNotice('ℹ️ Uploaded schedules cleared. Reverted to default verified transit feeds.');
+    executeSearch();
+    setTimeout(() => setDatasetNotice(null), 4000);
+  };
+
+  const handleLoadSample = () => {
+    const sample = busBookingService.getSampleCsvDataset();
+    setCsvInput(sample);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) {
+        setCsvInput(text);
+        const res = busBookingService.uploadBusDatasetFromCsv(text);
+        if (res.success) {
+          setUploadedCount(res.count);
+          setDatasetNotice(`✅ Uploaded file "${file.name}": ${res.count} schedules active!`);
+          executeSearch();
+          setTimeout(() => setDatasetNotice(null), 5000);
+        } else {
+          setDatasetNotice(`❌ Import error from file: ${res.error}`);
+        }
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Partner Integration Handlers
+  const handleAddPartnerSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPartner.name.trim() || !newPartner.url.trim()) return;
+    const item = busBookingService.addTransitPartnerIntegration({
+      name: newPartner.name.trim(),
+      url: newPartner.url.trim(),
+      category: newPartner.category,
+      description: newPartner.description.trim() || undefined,
+      isActive: true,
+    });
+    setPartnerIntegrations(busBookingService.getTransitPartnerIntegrations());
+    setNewPartner({ name: '', url: '', category: 'bus', description: '' });
+    setIsAddPartnerOpen(false);
+    setAdminSaveMsg(`Added "${item.name}" integration successfully!`);
+    setTimeout(() => setAdminSaveMsg(null), 4000);
+  };
+
+  const handleTogglePartner = (id: string, active: boolean) => {
+    busBookingService.updateTransitPartnerIntegration(id, { isActive: active });
+    setPartnerIntegrations(busBookingService.getTransitPartnerIntegrations());
+  };
+
+  const handleDeletePartner = (id: string) => {
+    busBookingService.deleteTransitPartnerIntegration(id);
+    setPartnerIntegrations(busBookingService.getTransitPartnerIntegrations());
+  };
+
+  const handleOpenPartnerModal = (url: string, title: string) => {
+    setActiveModalUrl(url);
+    setActiveModalTitle(title);
+    setIsRedBusModalOpen(true);
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header with Book a Bus & Admin Integration Controls */}
@@ -164,7 +280,7 @@ export const SmartTransitPage: React.FC = () => {
           {/* Main Book a Bus Button (opens integrated redBus portal modal) */}
           <button
             type="button"
-            onClick={() => setIsRedBusModalOpen(true)}
+            onClick={() => handleOpenPartnerModal(redBusPartnerUrl, 'redBus Official Portal')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold text-xs shadow-lg shadow-rose-600/30 transition-all cursor-pointer transform hover:-translate-y-0.5"
             title="Book a Bus via integrated redBus portal"
           >
@@ -180,18 +296,19 @@ export const SmartTransitPage: React.FC = () => {
               type="button"
               onClick={() => setIsAdminPanelOpen(!isAdminPanelOpen)}
               className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-bold text-xs transition-all cursor-pointer"
-              title="Configure Partner API and Transit Integration"
+              title="Configure Partner API, Transit Websites & Dataset"
             >
               <Sliders className="w-4 h-4 text-indigo-600" />
-              <span>{isAdminPanelOpen ? 'Hide Integration Hub' : 'Integrate Options (Admin)'}</span>
+              <span>{isAdminPanelOpen ? 'Hide Admin Transit Hub' : 'Transit Admin Controls (Upload & URL)'}</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* ADMIN EXCLUSIVE: Transit Partner API Gateway Integration Management */}
+      {/* ADMIN EXCLUSIVE: Transit Hub (Dataset Upload & Partner Integration) */}
       {(isAdmin || user?.role === 'admin') && isAdminPanelOpen && (
-        <div className="p-6 rounded-3xl bg-gradient-to-br from-indigo-950 via-slate-900 to-blue-950 border-2 border-indigo-400/50 shadow-2xl text-white space-y-5 animate-in fade-in">
+        <div className="p-6 rounded-3xl bg-gradient-to-br from-indigo-950 via-slate-900 to-blue-950 border-2 border-indigo-400/50 shadow-2xl text-white space-y-6 animate-in fade-in">
+          {/* Admin Command Header */}
           <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-indigo-500/30">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-indigo-600/30 border border-indigo-400 text-indigo-300 flex items-center justify-center shadow-inner">
@@ -203,139 +320,407 @@ export const SmartTransitPage: React.FC = () => {
                     Admin Command Operations
                   </span>
                   <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold border border-emerald-500/40">
-                    LIVE GATEWAY
+                    TRANSIT GOVERNANCE ACTIVE
                   </span>
                 </div>
                 <h3 className="text-lg font-black font-display text-white">
-                  Transit Partner Integration Gateway & redBus API Configuration
+                  Transit Schedule Dataset Engine & Website Integration Manager
                 </h3>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-slate-300">Gateway Status:</span>
+            {/* Navigation Tabs for Admin */}
+            <div className="flex flex-wrap items-center gap-2 bg-slate-900/80 p-1.5 rounded-2xl border border-indigo-500/40">
               <button
                 type="button"
-                onClick={() => {
-                  const updated = !isRedBusActive;
-                  setIsRedBusActive(updated);
-                  localStorage.setItem('smartmove_redbus_active', String(updated));
-                }}
-                className={`px-3 py-1.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer border ${
-                  isRedBusActive
-                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
-                    : 'bg-rose-500/20 border-rose-500 text-rose-300'
+                onClick={() => setAdminTab('dataset')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer ${
+                  adminTab === 'dataset'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'text-slate-300 hover:text-white'
                 }`}
               >
-                {isRedBusActive ? '● INTEGRATED (ENABLED)' : '○ INTEGRATED (DISABLED)'}
+                <Upload className="w-3.5 h-3.5" />
+                <span>Upload Dataset ({uploadedCount})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAdminTab('partners')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer ${
+                  adminTab === 'partners'
+                    ? 'bg-indigo-600 text-white shadow'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>Integration Websites ({partnerIntegrations.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAdminTab('gateway')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-xs font-bold transition-all cursor-pointer ${
+                  adminTab === 'gateway'
+                    ? 'bg-cyan-600 text-white shadow'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                <Radio className="w-3.5 h-3.5" />
+                <span>redBus Gateway API</span>
               </button>
             </div>
           </div>
 
-          {/* Form Settings */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 text-xs">
-            <div className="lg:col-span-2 space-y-3">
-              <div>
-                <label className="block text-indigo-200 font-mono uppercase text-[11px] font-bold mb-1.5 flex items-center justify-between">
-                  <span>Integrated Partner Booking URL (redBus Endpoint)</span>
+          {/* TAB 1: UPLOAD BUS SCHEDULE DATASET */}
+          {adminTab === 'dataset' && (
+            <div className="space-y-4 animate-in fade-in">
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-4 rounded-2xl border border-indigo-500/20">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Database className="w-4 h-4 text-cyan-400" />
+                    <h4 className="font-bold text-sm text-cyan-200">
+                      Corridor Bus Schedule Dataset ("What Bus Will Come When")
+                    </h4>
+                  </div>
+                  <p className="text-xs text-slate-300">
+                    Upload CSV schedule datasets containing origin (From), destination (To), departure time, arrival time, operator, fare, and bus type. The system instantly indexes these into the live timetable so citizens immediately see arrival schedules.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 text-xs font-bold cursor-pointer transition-all">
+                    <FileText className="w-4 h-4 text-cyan-400" />
+                    <span>Choose CSV File</span>
+                    <input
+                      type="file"
+                      accept=".csv,text/csv,text/plain"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={handleLoadSample}
+                    className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold cursor-pointer transition-all"
+                  >
+                    Load Sample (Theni-Madurai-Periyakulam)
+                  </button>
+
+                  {uploadedCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleClearDataset}
+                      className="px-3.5 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-500/40 text-xs font-bold cursor-pointer transition-all flex items-center gap-1"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Clear Uploaded ({uploadedCount})</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Textarea for CSV */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-xs text-slate-300 font-mono">
+                  <span>CSV Dataset Editor (Header required: from,to,departure,arrival,fare,busname,operator...)</span>
+                  <span className="text-cyan-300 font-bold">{uploadedCount} custom schedules in memory</span>
+                </div>
+
+                <textarea
+                  rows={6}
+                  value={csvInput}
+                  onChange={(e) => setCsvInput(e.target.value)}
+                  className="w-full bg-slate-950 border border-indigo-400/40 focus:border-cyan-400 rounded-2xl p-3.5 text-xs text-cyan-100 font-mono focus:outline-none shadow-inner"
+                  placeholder="from,to,departure,arrival,fare,busname,operator,busType,duration,frequency,availableSeats&#10;Theni,Madurai,07:00 AM,08:30 AM,65,Theni Express 101,TNSTC-Madurai,Express,1h 30m,Every 15 mins,34"
+                />
+
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleUploadCsv}
+                    className="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs cursor-pointer transition-all shadow-md shadow-cyan-600/30 flex items-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Upload & Process Schedule Dataset</span>
+                  </button>
+
+                  {datasetNotice && (
+                    <div className="text-xs font-mono font-medium px-3 py-1.5 rounded-lg bg-slate-950 border border-cyan-500/40">
+                      {datasetNotice}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: INTEGRATION WEBSITES & URLS */}
+          {adminTab === 'partners' && (
+            <div className="space-y-4 animate-in fade-in">
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-4 rounded-2xl border border-indigo-500/20">
+                <div>
+                  <h4 className="font-bold text-sm text-indigo-200">
+                    Integrated Transit Portals & External Booking URLs
+                  </h4>
+                  <p className="text-xs text-slate-300">
+                    Add authorized transit booking websites and government portals (e.g. redBus, TNSTC, IRCTC, KSRTC, Metro Rail). Citizens can access them directly through in-app responsive modals or dedicated links.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsAddPartnerOpen(!isAddPartnerOpen)}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs cursor-pointer transition-all shadow"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{isAddPartnerOpen ? 'Close Form' : 'Add Integration Website'}</span>
+                </button>
+              </div>
+
+              {/* Add Partner Form */}
+              {isAddPartnerOpen && (
+                <form
+                  onSubmit={handleAddPartnerSubmit}
+                  className="p-4 bg-slate-950/80 rounded-2xl border border-indigo-400/50 space-y-3 text-xs"
+                >
+                  <div className="font-bold text-indigo-300 font-mono text-xs uppercase tracking-wider">
+                    Add New Integration Website / URL
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-slate-400 font-mono text-[11px] mb-1">Website Name</label>
+                      <input
+                        type="text"
+                        required
+                        value={newPartner.name}
+                        onChange={(e) => setNewPartner({ ...newPartner, name: e.target.value })}
+                        placeholder="e.g. TNSTC Bus Booking"
+                        className="w-full bg-slate-900 border border-indigo-400/40 rounded-xl px-3 py-2 text-white font-medium focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-slate-400 font-mono text-[11px] mb-1">Website URL (https://...)</label>
+                      <input
+                        type="url"
+                        required
+                        value={newPartner.url}
+                        onChange={(e) => setNewPartner({ ...newPartner, url: e.target.value })}
+                        placeholder="https://www.tnstc.in or https://www.redbus.in"
+                        className="w-full bg-slate-900 border border-indigo-400/40 rounded-xl px-3 py-2 text-white font-mono focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 font-mono text-[11px] mb-1">Category</label>
+                      <select
+                        value={newPartner.category}
+                        onChange={(e) => setNewPartner({ ...newPartner, category: e.target.value as any })}
+                        className="w-full bg-slate-900 border border-indigo-400/40 rounded-xl px-3 py-2 text-white focus:outline-none cursor-pointer"
+                      >
+                        <option value="bus">Bus Fleet / Road Booking</option>
+                        <option value="train">Train / Rail Booking</option>
+                        <option value="metro">Metro Rail Transit</option>
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-slate-400 font-mono text-[11px] mb-1">Description / Campaign Tag</label>
+                      <input
+                        type="text"
+                        value={newPartner.description}
+                        onChange={(e) => setNewPartner({ ...newPartner, description: e.target.value })}
+                        placeholder="Tamil Nadu State Express Transport Corporation Official Portal"
+                        className="w-full bg-slate-900 border border-indigo-400/40 rounded-xl px-3 py-2 text-white font-medium focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddPartnerOpen(false)}
+                      className="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold cursor-pointer"
+                    >
+                      Save & Integrate
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Integrated Websites List */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {partnerIntegrations.map((partner) => (
+                  <div
+                    key={partner.id}
+                    className="p-3.5 rounded-2xl bg-slate-900/90 border border-indigo-500/30 flex flex-col justify-between gap-3"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-white text-xs flex items-center gap-1.5">
+                          <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                          {partner.name}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                          {partner.category.toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">
+                        {partner.description || partner.url}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-indigo-500/20 text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPartnerModal(partner.url, partner.name)}
+                        className="text-cyan-300 hover:text-cyan-200 font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>Open Modal</span>
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePartner(partner.id, !partner.isActive)}
+                          className={`px-2 py-0.5 rounded-full font-mono text-[10px] font-bold cursor-pointer ${
+                            partner.isActive
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                              : 'bg-slate-800 text-slate-400 border border-slate-700'
+                          }`}
+                        >
+                          {partner.isActive ? 'Active' : 'Disabled'}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeletePartner(partner.id)}
+                          className="text-rose-400 hover:text-rose-300 cursor-pointer p-1"
+                          title="Delete Partner"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: REDBUS GATEWAY API CONFIG */}
+          {adminTab === 'gateway' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 text-xs animate-in fade-in">
+              <div className="lg:col-span-2 space-y-3">
+                <div>
+                  <label className="block text-indigo-200 font-mono uppercase text-[11px] font-bold mb-1.5 flex items-center justify-between">
+                    <span>Integrated Partner Booking URL (redBus Endpoint)</span>
+                    <button
+                      type="button"
+                      onClick={() => setAdminUrlInput(REDBUS_DEFAULT_URL)}
+                      className="text-cyan-300 hover:underline lowercase font-normal"
+                    >
+                      Reset to default URL
+                    </button>
+                  </label>
+                  <div className="relative flex items-center">
+                    <Link2 className="w-4 h-4 text-slate-400 absolute left-3.5" />
+                    <input
+                      type="text"
+                      value={adminUrlInput}
+                      onChange={(e) => setAdminUrlInput(e.target.value)}
+                      className="w-full bg-slate-950 border border-indigo-400/40 focus:border-indigo-400 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-indigo-100 font-mono focus:outline-none"
+                      placeholder="https://www.redbus.in/..."
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Active campaign endpoint loaded when citizens click "Book a Bus". Supports query parameters, affiliate tags, and regional tracking codes.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 pt-1">
                   <button
                     type="button"
                     onClick={() => {
-                      setAdminUrlInput(REDBUS_DEFAULT_URL);
+                      localStorage.setItem('smartmove_redbus_url', adminUrlInput);
+                      setRedBusPartnerUrl(adminUrlInput);
+                      setAdminSaveMsg('Partner integration settings saved successfully!');
+                      setTimeout(() => setAdminSaveMsg(null), 3500);
                     }}
-                    className="text-cyan-300 hover:underline lowercase font-normal"
+                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold cursor-pointer transition-all shadow-md shadow-indigo-600/30 flex items-center gap-1.5"
                   >
-                    Reset to default URL
+                    <Check className="w-4 h-4" /> Save Configuration
                   </button>
-                </label>
-                <div className="relative flex items-center">
-                  <Link2 className="w-4 h-4 text-slate-400 absolute left-3.5" />
-                  <input
-                    type="text"
-                    value={adminUrlInput}
-                    onChange={(e) => setAdminUrlInput(e.target.value)}
-                    className="w-full bg-slate-950 border border-indigo-400/40 focus:border-indigo-400 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-indigo-100 font-mono focus:outline-none"
-                    placeholder="https://www.redbus.in/..."
-                  />
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Active campaign endpoint loaded when citizens click "Book a Bus". Supports query parameters, affiliate tags, and regional tracking codes.
-                </p>
-              </div>
 
-              <div className="flex flex-wrap items-center gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    localStorage.setItem('smartmove_redbus_url', adminUrlInput);
-                    setRedBusPartnerUrl(adminUrlInput);
-                    setAdminSaveMsg('Partner integration settings saved successfully!');
-                    setTimeout(() => setAdminSaveMsg(null), 3500);
-                  }}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold cursor-pointer transition-all shadow-md shadow-indigo-600/30 flex items-center gap-1.5"
-                >
-                  <Check className="w-4 h-4" /> Save Configuration
-                </button>
+                  <button
+                    type="button"
+                    disabled={handshakeStatus === 'testing'}
+                    onClick={() => {
+                      setHandshakeStatus('testing');
+                      setTimeout(() => {
+                        setHandshakeStatus('success');
+                        setTimeout(() => setHandshakeStatus('idle'), 4000);
+                      }, 1200);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 font-bold cursor-pointer transition-all flex items-center gap-1.5"
+                  >
+                    {handshakeStatus === 'testing' ? (
+                      <RefreshCw className="w-4 h-4 animate-spin text-cyan-300" />
+                    ) : (
+                      <Radio className="w-4 h-4 text-cyan-400" />
+                    )}
+                    <span>Test Gateway Handshake</span>
+                  </button>
 
-                <button
-                  type="button"
-                  disabled={handshakeStatus === 'testing'}
-                  onClick={() => {
-                    setHandshakeStatus('testing');
-                    setTimeout(() => {
-                      setHandshakeStatus('success');
-                      setTimeout(() => setHandshakeStatus('idle'), 4000);
-                    }, 1200);
-                  }}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 font-bold cursor-pointer transition-all flex items-center gap-1.5"
-                >
-                  {handshakeStatus === 'testing' ? (
-                    <RefreshCw className="w-4 h-4 animate-spin text-cyan-300" />
-                  ) : (
-                    <Radio className="w-4 h-4 text-cyan-400" />
+                  {adminSaveMsg && (
+                    <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-4 h-4" /> {adminSaveMsg}
+                    </span>
                   )}
-                  <span>Test Gateway Handshake</span>
-                </button>
 
-                {adminSaveMsg && (
-                  <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-4 h-4" /> {adminSaveMsg}
-                  </span>
-                )}
-
-                {handshakeStatus === 'success' && (
-                  <span className="text-cyan-300 font-mono text-[11px] flex items-center gap-1">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Handshake OK (200 OK, Latency: 32ms)
-                  </span>
-                )}
+                  {handshakeStatus === 'success' && (
+                    <span className="text-cyan-300 font-mono text-[11px] flex items-center gap-1">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Handshake OK (200 OK, Latency: 32ms)
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Gateway Telemetry & Info Box */}
-            <div className="bg-slate-950/70 p-4 rounded-2xl border border-indigo-500/30 space-y-2.5 font-mono text-[11px]">
-              <div className="text-indigo-300 font-bold uppercase tracking-wider text-[10px]">
-                Active Integration Spec
-              </div>
-              <div className="space-y-1.5 text-slate-300">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Partner:</span>
-                  <span className="font-bold text-white">redBus (South Zone)</span>
+              {/* Gateway Telemetry & Info Box */}
+              <div className="bg-slate-950/70 p-4 rounded-2xl border border-indigo-500/30 space-y-2.5 font-mono text-[11px]">
+                <div className="text-indigo-300 font-bold uppercase tracking-wider text-[10px]">
+                  Active Integration Telemetry
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Protocol:</span>
-                  <span className="text-cyan-300">HTTPS / Responsive iFrame</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Corridors Synced:</span>
-                  <span className="text-emerald-400">Theni, Madurai, Salem</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Integration Role:</span>
-                  <span className="text-indigo-300">Admin Authorized</span>
+                <div className="space-y-1.5 text-slate-300">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Partner:</span>
+                    <span className="font-bold text-white">redBus (South Zone)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Protocol:</span>
+                    <span className="text-cyan-300">HTTPS / Responsive iFrame</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Corridors Synced:</span>
+                    <span className="text-emerald-400">Theni, Madurai, Salem</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Custom Dataset:</span>
+                    <span className="text-indigo-300">{uploadedCount} routes active</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -360,7 +745,7 @@ export const SmartTransitPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
-              onClick={() => setIsRedBusModalOpen(true)}
+              onClick={() => handleOpenPartnerModal(redBusPartnerUrl, 'redBus Official Portal')}
               className="px-5 py-3 rounded-2xl bg-white hover:bg-rose-50 text-red-600 font-black text-xs shadow-lg shadow-black/20 flex items-center gap-2 transition-all cursor-pointer transform hover:scale-105"
             >
               <Bus className="w-4 h-4 text-red-600" />
@@ -396,7 +781,7 @@ export const SmartTransitPage: React.FC = () => {
               onClick={() => {
                 setFromCity(corridor.from);
                 setToCity(corridor.to);
-                setIsRedBusModalOpen(true);
+                handleOpenPartnerModal(redBusPartnerUrl, `redBus — ${corridor.from} to ${corridor.to}`);
               }}
               className="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white text-[11px] font-medium backdrop-blur-sm border border-white/20 transition-all cursor-pointer flex items-center gap-1"
             >
@@ -406,6 +791,30 @@ export const SmartTransitPage: React.FC = () => {
             </button>
           ))}
         </div>
+
+        {/* Integrated Partner Websites Direct Launchers */}
+        {partnerIntegrations.filter((p) => p.isActive).length > 0 && (
+          <div className="pt-3 border-t border-white/20 flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-white/80 font-mono text-[11px] flex items-center gap-1">
+              <Globe className="w-3.5 h-3.5 text-amber-300" />
+              <span>Integrated Transit Websites:</span>
+            </span>
+            {partnerIntegrations
+              .filter((p) => p.isActive)
+              .map((partner) => (
+                <button
+                  key={partner.id}
+                  type="button"
+                  onClick={() => handleOpenPartnerModal(partner.url, partner.name)}
+                  className="px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[11px] font-semibold border border-white/30 transition-all cursor-pointer flex items-center gap-1"
+                  title={partner.description || partner.name}
+                >
+                  <span>{partner.name}</span>
+                  <ExternalLink className="w-3 h-3 opacity-75" />
+                </button>
+              ))}
+          </div>
+        )}
       </div>
 
       {/* Interactive Urban Mobility Live Flow Animation */}
@@ -1012,24 +1421,24 @@ export const SmartTransitPage: React.FC = () => {
       {/* INTEGRATED REDBUS BOOKING PORTAL MODAL */}
       {isRedBusModalOpen && (
         <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4 animate-in fade-in">
-          <div className="bg-slate-900 border border-rose-500/40 rounded-3xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95">
+          <div className="bg-slate-900 border border-indigo-500/40 rounded-3xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95">
             {/* Modal Header Bar */}
-            <div className="p-4 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white flex flex-wrap items-center justify-between gap-3 border-b border-red-500/30">
+            <div className="p-4 bg-gradient-to-r from-indigo-700 via-rose-600 to-red-600 text-white flex flex-wrap items-center justify-between gap-3 border-b border-white/20">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-white text-red-600 font-black flex items-center justify-center shadow-md">
-                  <Bus className="w-5 h-5" />
+                <div className="w-9 h-9 rounded-xl bg-white text-indigo-700 font-black flex items-center justify-center shadow-md">
+                  <Globe className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-white text-sm sm:text-base font-display">
-                      Book a Bus — redBus Integrated Transit Gateway
+                      {activeModalTitle || 'Integrated Transit Gateway'}
                     </h3>
                     <span className="hidden sm:inline px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-mono font-bold">
-                      OFFICIAL INTEGRATION
+                      VERIFIED PARTNER PORTAL
                     </span>
                   </div>
-                  <p className="text-[11px] text-white/80">
-                    Live seat inventory & lowest price booking across South Zone and Tamil Nadu
+                  <p className="text-[11px] text-white/80 truncate max-w-md">
+                    {activeModalUrl}
                   </p>
                 </div>
               </div>
@@ -1037,11 +1446,11 @@ export const SmartTransitPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 {/* External Tab Link (Essential for browsers blocking iframe cross-origin cookies) */}
                 <a
-                  href={redBusPartnerUrl}
+                  href={activeModalUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs flex items-center gap-1.5 transition-all border border-white/20"
-                  title="Open redBus Portal in New Tab"
+                  title="Open Portal in New Tab"
                 >
                   <span>Open in New Tab</span>
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -1064,18 +1473,18 @@ export const SmartTransitPage: React.FC = () => {
               <div className="flex items-center gap-2 text-slate-300">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                 <span className="font-mono text-[11px]">
-                  Secure Gateway Connection: <strong>redbus.in</strong> (South Zone Verified)
+                  Secure Gateway Connection: <strong>{new URL(activeModalUrl).hostname}</strong> (Authorized Transport Partner)
                 </span>
               </div>
               <div className="flex items-center gap-2 text-[11px]">
-                <span className="text-slate-400">Viewing issues?</span>
+                <span className="text-slate-400">Security / CSP block?</span>
                 <a
-                  href={redBusPartnerUrl}
+                  href={activeModalUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-cyan-400 hover:text-cyan-300 font-bold underline flex items-center gap-1"
                 >
-                  Launch full redBus window <ArrowRight className="w-3 h-3" />
+                  Launch full partner window <ArrowRight className="w-3 h-3" />
                 </a>
               </div>
             </div>
@@ -1083,8 +1492,8 @@ export const SmartTransitPage: React.FC = () => {
             {/* Embedded Iframe Container */}
             <div className="flex-1 min-h-[60vh] max-h-[75vh] w-full bg-white relative">
               <iframe
-                src={redBusPartnerUrl}
-                title="Book a Bus - redBus South Zone"
+                src={activeModalUrl}
+                title={activeModalTitle}
                 className="w-full h-full border-0"
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-presentation"
                 loading="lazy"

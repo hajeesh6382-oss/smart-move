@@ -89,8 +89,78 @@ let thresholdConfig: PricingThresholdConfig = {
 // System mode: LIVE MODE vs TEST MODE
 let isTestModeActive = false;
 
+export interface ZonePricingOverride {
+  zoneId: string;
+  zoneName: string;
+  pricingMode: 'dynamic' | 'fixed';
+  fixedRate: number; // in ₹
+  carRate?: number;
+  commercialRate?: number;
+  heavyRate?: number;
+  twoWheelerRate?: number;
+  updatedBy: string;
+  updatedAt: string;
+}
+
+const STORAGE_KEY_ERP_OVERRIDES = 'smartmove_erp_overrides';
+const STORAGE_KEY_ERP_ZONES = 'smartmove_erp_custom_zones';
+
 // Default Pre-Configured Monitored Road Pricing Zones
-const DEFAULT_ZONES: RoadPricingZone[] = [
+export const DEFAULT_ZONES: RoadPricingZone[] = [
+  {
+    id: 'zone_theni_gateway',
+    zone_name: 'Theni Highway Gantry (NH-85)',
+    road_name: 'Madurai - Theni Expressway',
+    geometry: [
+      { lat: 10.0100, lng: 77.4700 },
+      { lat: 10.0150, lng: 77.4850 },
+      { lat: 10.0050, lng: 77.4900 },
+      { lat: 10.0000, lng: 77.4750 },
+    ],
+    min_charge: 0,
+    max_charge: 50,
+    peak_multiplier: 1.25,
+    offpeak_multiplier: 0.8,
+    status: 'active',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'zone_periyakulam_bypass',
+    zone_name: 'Periyakulam Bypass Gantry',
+    road_name: 'Bypass Roundabout Toll Point',
+    geometry: [
+      { lat: 10.1150, lng: 77.5400 },
+      { lat: 10.1250, lng: 77.5550 },
+      { lat: 10.1100, lng: 77.5600 },
+      { lat: 10.1000, lng: 77.5450 },
+    ],
+    min_charge: 0,
+    max_charge: 40,
+    peak_multiplier: 1.25,
+    offpeak_multiplier: 0.8,
+    status: 'active',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'zone_madurai_ring',
+    zone_name: 'Madurai Outer Ring Gantry',
+    road_name: 'NH-44 Madurai Ring Road',
+    geometry: [
+      { lat: 9.9250, lng: 78.1150 },
+      { lat: 9.9350, lng: 78.1300 },
+      { lat: 9.9200, lng: 78.1400 },
+      { lat: 9.9100, lng: 78.1200 },
+    ],
+    min_charge: 0,
+    max_charge: 60,
+    peak_multiplier: 1.3,
+    offpeak_multiplier: 0.8,
+    status: 'active',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
   {
     id: 'zone_central',
     zone_name: 'Central Urban Core',
@@ -147,6 +217,85 @@ const DEFAULT_ZONES: RoadPricingZone[] = [
   },
 ];
 
+export function getZonePricingOverrides(): Record<string, ZonePricingOverride> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_ERP_OVERRIDES);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.warn('Error reading ERP overrides', e);
+  }
+  return {};
+}
+
+export function setZoneFixedPrice(
+  zoneId: string,
+  zoneName: string,
+  fixedRate: number,
+  mode: 'dynamic' | 'fixed' = 'fixed',
+  vehicleRates?: { carRate?: number; commercialRate?: number; heavyRate?: number; twoWheelerRate?: number }
+): void {
+  const overrides = getZonePricingOverrides();
+  overrides[zoneId] = {
+    zoneId,
+    zoneName,
+    pricingMode: mode,
+    fixedRate,
+    carRate: vehicleRates?.carRate ?? fixedRate,
+    commercialRate: vehicleRates?.commercialRate ?? Math.round(fixedRate * 1.5),
+    heavyRate: vehicleRates?.heavyRate ?? Math.round(fixedRate * 2.5),
+    twoWheelerRate: vehicleRates?.twoWheelerRate ?? Math.max(0, Math.round(fixedRate * 0.4)),
+    updatedBy: 'Transport Authority (Admin)',
+    updatedAt: new Date().toISOString(),
+  };
+  localStorage.setItem(STORAGE_KEY_ERP_OVERRIDES, JSON.stringify(overrides));
+
+  // Trigger updateZoneCongestion with current value to re-evaluate and broadcast the new fixed price
+  const history = congestionHistoryMap.get(zoneId);
+  const currentCong = history ? history[history.length - 1] : 55;
+  updateZoneCongestion(
+    zoneId,
+    currentCong,
+    'LIVE TRAFFIC DATA',
+    mode === 'fixed'
+      ? `Admin fixed ERP toll price set to ₹${fixedRate} for ${zoneName}.`
+      : `Admin switched ${zoneName} pricing back to Dynamic AI rate.`
+  );
+}
+
+export function getAllZonesWithOverrides(): RoadPricingZone[] {
+  let customZones: RoadPricingZone[] = [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_ERP_ZONES);
+    if (raw) customZones = JSON.parse(raw);
+  } catch (e) {
+    console.warn('Error reading custom zones', e);
+  }
+  const combined = [...DEFAULT_ZONES];
+  for (const cz of customZones) {
+    if (!combined.some((z) => z.id === cz.id)) {
+      combined.push(cz);
+    }
+  }
+  return combined;
+}
+
+export function addCustomPricingPlace(zone: RoadPricingZone, initialFixedRate?: number): void {
+  let customZones: RoadPricingZone[] = [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_ERP_ZONES);
+    if (raw) customZones = JSON.parse(raw);
+  } catch (e) {
+    // ignore
+  }
+  if (!customZones.some((z) => z.id === zone.id)) {
+    customZones.push(zone);
+    localStorage.setItem(STORAGE_KEY_ERP_ZONES, JSON.stringify(customZones));
+  }
+  if (initialFixedRate !== undefined) {
+    setZoneFixedPrice(zone.id, zone.zone_name, initialFixedRate, 'fixed');
+  }
+}
+
 // Historical delta buffer for velocity trend calculation
 const congestionHistoryMap = new Map<string, number[]>();
 
@@ -163,9 +312,7 @@ export function calculateCongestionIndex(currentDurationSec: number, freeFlowDur
   }
 
   const delaySec = Math.max(0, currentDurationSec - freeFlowDurationSec);
-  // Ratio: delay divided by free flow duration
   const rawRatio = delaySec / freeFlowDurationSec;
-  // Normalized 0-100 score: 100% delay = severe congestion
   const congestionPercentage = Math.min(100, Math.max(0, Math.round(rawRatio * 100)));
 
   let status: 'LOW' | 'MODERATE' | 'HIGH' | 'VERY HIGH' | 'SEVERE' = 'LOW';
@@ -201,6 +348,17 @@ export function computeDynamicCharge(
       charge: 0,
       tier: 'INACTIVE',
       reason: 'Road pricing zone is currently deactivated.',
+    };
+  }
+
+  // 1.5 Admin Fixed Price Override Check (Admin has rights where the price to fix in place)
+  const overrides = getZonePricingOverrides();
+  const override = overrides[zone.id];
+  if (override && override.pricingMode === 'fixed') {
+    return {
+      charge: override.fixedRate,
+      tier: 'FIXED BY ADMIN',
+      reason: `Fixed Rate Enforced: ₹${override.fixedRate} set by Transport Authority for ${zone.zone_name}.`,
     };
   }
 
@@ -489,8 +647,6 @@ export function updatePricingThresholds(newConfig: Partial<PricingThresholdConfi
 export function getPricingThresholds(): PricingThresholdConfig {
   return thresholdConfig;
 }
-
-export { DEFAULT_ZONES };
 
 export interface RoutePricingEvaluation {
   totalDynamicCharge: number;
