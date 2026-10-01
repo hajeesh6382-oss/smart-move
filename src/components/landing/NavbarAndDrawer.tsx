@@ -17,8 +17,10 @@ import {
   Layers,
   Leaf,
   Navigation,
+  LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { SettingsModal } from '../ui/SettingsModal';
 
 interface NavbarAndDrawerProps {
   activeSection?: string;
@@ -30,9 +32,10 @@ export const NavbarAndDrawer: React.FC<NavbarAndDrawerProps> = ({
   onNavigateSection,
 }) => {
   const navigate = useNavigate();
-  const { user, signInAsDemo } = useAuth();
+  const { user, signOut, signInAsDemo } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(3);
 
@@ -267,28 +270,29 @@ export const NavbarAndDrawer: React.FC<NavbarAndDrawerProps> = ({
       </header>
 
       {/* Animated Full-Height Side Drawer Panel */}
+      {/* Mobile Off-Canvas Drawer (Clean Solid White Background) */}
       {drawerOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
           {/* Backdrop with Blur */}
           <div
             onClick={() => setDrawerOpen(false)}
-            className="fixed inset-0 bg-slate-950/70 backdrop-blur-md transition-opacity duration-300 animate-in fade-in"
+            className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in"
           />
 
-          {/* Drawer Body Sliding in from Right */}
-          <div className="relative w-full max-w-sm sm:max-w-md h-full bg-slate-950/95 border-l border-cyan-500/30 p-6 sm:p-8 flex flex-col justify-between shadow-2xl shadow-cyan-950/80 z-10 overflow-y-auto animate-in slide-in-from-right duration-300">
+          {/* Drawer Body Sliding in from Right (Clean Solid White) */}
+          <div className="relative w-full max-w-sm sm:max-w-md h-full bg-white border-l border-slate-200 p-6 sm:p-8 flex flex-col justify-between shadow-2xl z-10 overflow-y-auto animate-in slide-in-from-right duration-300 text-slate-900">
             <div>
               {/* Drawer Header */}
-              <div className="flex items-center justify-between pb-6 border-b border-slate-800">
+              <div className="flex items-center justify-between pb-5 border-b border-slate-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center font-black font-display text-slate-950 text-xl shadow-lg shadow-cyan-500/20">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center font-black font-display text-white text-xl shadow-md">
                     S
                   </div>
                   <div>
-                    <h3 className="text-base font-black font-display text-white tracking-tight">
+                    <h3 className="text-base font-black font-display text-blue-950 tracking-tight">
                       SMARTMOVE
                     </h3>
-                    <p className="text-[11px] text-cyan-400 font-mono">
+                    <p className="text-[11px] text-blue-600 font-mono">
                       Autonomous Urban Mobility
                     </p>
                   </div>
@@ -296,7 +300,7 @@ export const NavbarAndDrawer: React.FC<NavbarAndDrawerProps> = ({
 
                 <button
                   onClick={() => setDrawerOpen(false)}
-                  className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
                   aria-label="Close Drawer"
                 >
                   <X className="w-5 h-5" />
@@ -304,74 +308,80 @@ export const NavbarAndDrawer: React.FC<NavbarAndDrawerProps> = ({
               </div>
 
               {/* User Snapshot in Drawer */}
-              <div className="mt-6 p-4 rounded-2xl bg-gradient-to-br from-cyan-950/40 to-slate-900/60 border border-cyan-500/20 flex items-center justify-between">
+              <div className="mt-5 p-4 rounded-2xl bg-blue-50/70 border border-blue-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-sm">
                     <User className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-white">
+                    <h4 className="text-sm font-bold text-blue-950">
                       {user?.full_name || (user as any)?.name || 'Citizen Guest'}
                     </h4>
-                    <span className="text-[10px] text-emerald-400 flex items-center gap-1 font-mono">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Active Mobility Pass
+                    <span className="text-[10px] text-emerald-600 flex items-center gap-1 font-mono font-bold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      {user ? 'Verified Mobility Account' : 'Guest Pass'}
                     </span>
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    setDrawerOpen(false);
-                    navigate('/app/profile');
-                  }}
-                  className="text-xs text-cyan-400 hover:underline font-semibold cursor-pointer"
-                >
-                  Profile
-                </button>
+                {user ? (
+                  <button
+                    onClick={() => {
+                      setDrawerOpen(false);
+                      navigate('/app/profile');
+                    }}
+                    className="text-xs text-blue-600 hover:underline font-bold cursor-pointer"
+                  >
+                    Profile
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setDrawerOpen(false);
+                      navigate('/auth/signin');
+                    }}
+                    className="text-xs text-blue-600 hover:underline font-bold cursor-pointer"
+                  >
+                    Sign In
+                  </button>
+                )}
               </div>
 
-              {/* Menu Navigation Options (Prompt Section 5) */}
-              <div className="mt-6 space-y-2">
-                <span className="text-[11px] font-mono uppercase tracking-widest text-slate-400 font-bold px-2">
-                  Navigation
+              {/* Menu Navigation Options (Profile, Live Map, Route Planner, Smart Transit, Settings, etc.) */}
+              <div className="mt-5 space-y-2">
+                <span className="text-[11px] font-mono uppercase tracking-widest text-blue-700 font-bold px-1">
+                  Mobility Navigation
                 </span>
 
                 {[
                   {
                     label: 'Profile',
                     sub: 'Commute preferences & pass',
-                    icon: <User className="w-5 h-5 text-cyan-400" />,
+                    icon: <User className="w-5 h-5 text-blue-600" />,
                     path: '/app/profile',
                   },
                   {
                     label: 'Live Map',
                     sub: 'Real-time traffic & facility GIS',
-                    icon: <MapPin className="w-5 h-5 text-emerald-400" />,
+                    icon: <MapPin className="w-5 h-5 text-cyan-600" />,
                     path: '/app/map',
                   },
                   {
                     label: 'Route Planner',
                     sub: 'Multi-modal AI trip generation',
-                    icon: <Compass className="w-5 h-5 text-blue-400" />,
+                    icon: <Compass className="w-5 h-5 text-blue-600" />,
                     path: '/app/routes',
                   },
                   {
-                    label: 'Road Pricing',
-                    sub: 'Dynamic congestion tolls & ERP',
-                    icon: <Coins className="w-5 h-5 text-amber-400" />,
-                    path: '/app/road-pricing',
-                  },
-                  {
                     label: 'Smart Transit & Buses',
-                    sub: 'Live rapid electric corridors',
-                    icon: <Navigation className="w-5 h-5 text-purple-400" />,
+                    sub: 'Live timetables, redBus & IRCTC',
+                    icon: <Navigation className="w-5 h-5 text-purple-600" />,
                     path: '/app/buses',
                   },
                   {
-                    label: 'Admin Command Center',
-                    sub: 'City operations & signal sandbox',
-                    icon: <Shield className="w-5 h-5 text-rose-400" />,
-                    path: '/admin',
+                    label: 'Road Pricing (ERP)',
+                    sub: 'Dynamic congestion tolls & policy',
+                    icon: <Coins className="w-5 h-5 text-amber-500" />,
+                    path: '/app/road-pricing',
                   },
                 ].map((item, idx) => (
                   <button
@@ -384,44 +394,87 @@ export const NavbarAndDrawer: React.FC<NavbarAndDrawerProps> = ({
                       }
                       navigate(item.path);
                     }}
-                    className="w-full p-3.5 rounded-2xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-cyan-500/40 flex items-center justify-between text-left transition-all group cursor-pointer"
+                    className="w-full p-3 rounded-2xl bg-white hover:bg-blue-50/70 border border-slate-200/80 hover:border-blue-300 flex items-center justify-between text-left transition-all group cursor-pointer"
                   >
-                    <div className="flex items-center gap-3.5">
-                      <div className="p-2 rounded-xl bg-slate-800 border border-slate-700 group-hover:scale-110 group-hover:border-cyan-500/50 transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 group-hover:scale-105 transition-all">
                         {item.icon}
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">
+                        <div className="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition-colors">
                           {item.label}
                         </div>
-                        <div className="text-[11px] text-slate-400">
+                        <div className="text-[11px] text-slate-500">
                           {item.sub}
                         </div>
                       </div>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
                   </button>
                 ))}
+
+                {/* Settings Item */}
+                <button
+                  onClick={() => {
+                    setDrawerOpen(false);
+                    setSettingsOpen(true);
+                  }}
+                  className="w-full p-3 rounded-2xl bg-white hover:bg-blue-50/70 border border-slate-200/80 hover:border-blue-300 flex items-center justify-between text-left transition-all group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 group-hover:scale-105 transition-all text-blue-600">
+                      <Settings className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition-colors">
+                        Settings
+                      </div>
+                      <div className="text-[11px] text-slate-500">
+                        Dark/Light Mode, Languages, Voice Recognition
+                      </div>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                </button>
               </div>
             </div>
 
             {/* Drawer Bottom Actions */}
-            <div className="pt-6 border-t border-slate-800 space-y-3">
-
-              <button
-                onClick={() => {
-                  setDrawerOpen(false);
-                  handleLaunchApp();
-                }}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 transition-all cursor-pointer"
-              >
-                <span>Launch Citizen App</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+            <div className="pt-5 border-t border-slate-200 space-y-2.5">
+              {user ? (
+                <button
+                  onClick={async () => {
+                    setDrawerOpen(false);
+                    await signOut();
+                    navigate('/auth/signin');
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4 text-rose-600" />
+                  <span>Log Out</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setDrawerOpen(false);
+                    navigate('/auth/signin');
+                  }}
+                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                >
+                  <span>Sign In with Gmail OTP</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </>
   );
 };

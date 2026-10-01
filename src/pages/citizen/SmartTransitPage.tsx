@@ -15,6 +15,7 @@ import { LiveUnavailableBanner } from '../../components/ui/LiveUnavailableBanner
 import { UrbanMobilityAnimation } from '../../components/ui/UrbanMobilityAnimation';
 import {
   Bus,
+  Train,
   Clock,
   Users,
   ArrowRight,
@@ -51,6 +52,8 @@ import {
 
 const REDBUS_DEFAULT_URL =
   'https://www.redbus.in/?utm_source=bing&utm_medium=cpc&utm_campaign=IN-Brand-KWs-South%20Zone&utm_adgroup=%5Bredbus%5D-Exact&utm_keyword=redbus&msclkid=3bb856d2536d1acc956e3c6fe230c79b&utm_term=redbus&utm_content=%5Bredbus%5D-Exact';
+
+const IRCTC_DEFAULT_URL = 'https://www.irctc.co.in/nget/train-search';
 
 export const SmartTransitPage: React.FC = () => {
   const { user, isAdmin } = useAuth();
@@ -275,7 +278,7 @@ export const SmartTransitPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Action Buttons: Book a Bus & Admin Integration */}
+        {/* Action Buttons: Book a Bus, Book a Train (IRCTC) & Admin Integration */}
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Main Book a Bus Button (opens integrated redBus portal modal) */}
           <button
@@ -287,6 +290,19 @@ export const SmartTransitPage: React.FC = () => {
             <Bus className="w-4 h-4" />
             <span>Book a Bus</span>
             <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-white/20 font-black">redBus</span>
+            <ExternalLink className="w-3.5 h-3.5 opacity-90" />
+          </button>
+
+          {/* Main Book a Train Button (opens integrated IRCTC portal modal) */}
+          <button
+            type="button"
+            onClick={() => handleOpenPartnerModal(IRCTC_DEFAULT_URL, 'IRCTC Official Indian Railways Portal')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 hover:from-blue-600 hover:to-indigo-600 text-white font-bold text-xs shadow-lg shadow-blue-700/30 transition-all cursor-pointer transform hover:-translate-y-0.5"
+            title="Book a Train via integrated IRCTC portal (https://www.irctc.co.in/nget/train-search)"
+          >
+            <Train className="w-4 h-4" />
+            <span>Book a Train</span>
+            <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-white/20 font-black">IRCTC</span>
             <ExternalLink className="w-3.5 h-3.5 opacity-90" />
           </button>
 
@@ -815,6 +831,70 @@ export const SmartTransitPage: React.FC = () => {
               ))}
           </div>
         )}
+      </div>
+
+      {/* FEATURE: Integrated IRCTC Railway Booking Portal (https://www.irctc.co.in/nget/train-search) */}
+      <div className="p-6 rounded-3xl bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white shadow-xl space-y-4 border border-blue-500/30">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/30 text-blue-200 font-mono text-[11px] font-black uppercase tracking-wider border border-blue-400/40">
+                🚆 NATIONAL RAILWAY INTEGRATION
+              </span>
+              <span className="text-xs text-blue-200 font-medium">Indian Railway Catering & Tourism Corporation</span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-black font-display text-white">
+              IRCTC Train Search & Seat Reservation Portal
+            </h3>
+            <p className="text-xs text-blue-100 max-w-2xl leading-relaxed">
+              Plan and book Indian Railway train tickets directly through SMARTMOVE. Check live train schedules, PNR status, seat availability (Vande Bharat, Superfast, Express, Mail), and quota availability.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => handleOpenPartnerModal(IRCTC_DEFAULT_URL, 'IRCTC Official Indian Railways Portal')}
+              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs shadow-lg shadow-blue-500/20 flex items-center gap-2 transition-all cursor-pointer transform hover:scale-105"
+            >
+              <Train className="w-4 h-4 text-cyan-300" />
+              <span>Book a Train (IRCTC Portal)</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </button>
+
+            <a
+              href={IRCTC_DEFAULT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-3 rounded-2xl bg-blue-950/80 hover:bg-blue-950 text-blue-200 font-bold text-xs border border-blue-400/30 flex items-center gap-1.5 transition-all"
+            >
+              <span>Open in New Tab</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        </div>
+
+        {/* Popular Railway Corridors */}
+        <div className="pt-2 border-t border-blue-500/20 flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-blue-300 font-mono text-[11px]">Direct Train Search:</span>
+          {[
+            { from: 'Madurai (MDU)', to: 'Chennai Central (MAS)' },
+            { from: 'Dindigul (DG)', to: 'Bangalore (SBC)' },
+            { from: 'Theni (TENI)', to: 'Madurai (MDU)' },
+            { from: 'Coimbatore (CBE)', to: 'Chennai Egmore (MS)' },
+          ].map((corridor) => (
+            <button
+              key={`${corridor.from}-${corridor.to}`}
+              type="button"
+              onClick={() => handleOpenPartnerModal(IRCTC_DEFAULT_URL, `IRCTC — ${corridor.from} to ${corridor.to}`)}
+              className="px-2.5 py-1 rounded-lg bg-blue-800/40 hover:bg-blue-800/60 text-blue-100 text-[11px] font-medium border border-blue-400/20 transition-all cursor-pointer flex items-center gap-1"
+            >
+              <span>{corridor.from}</span>
+              <ArrowRight className="w-3 h-3 opacity-70" />
+              <span>{corridor.to}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Interactive Urban Mobility Live Flow Animation */}

@@ -240,7 +240,7 @@ export const OtpVerifyPage: React.FC = () => {
             Security Verification
           </h2>
           <p className="text-xs text-slate-400 font-medium mt-1">
-            Real-time verification passcode dispatched to{' '}
+            Real-time Gmail verification code dispatched to{' '}
             <strong className="text-cyan-300 font-mono font-bold">
               {formatMaskedRecipient(targetRecipient)}
             </strong>

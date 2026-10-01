@@ -37,14 +37,10 @@ const COUNTRY_CODES = [
 
 export const SignInPage: React.FC = () => {
   const navigate = useNavigate();
-  const { signIn, sendPhoneOtp, signInWithGoogle, signInAsDemo, loading } = useAuth();
+  const { signIn, signInWithGoogle, signInAsDemo, loading } = useAuth();
 
-  // Tab State
-  const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone');
-
-  // Phone Form State
-  const [countryCode, setCountryCode] = useState('+91');
-  const [rawPhone, setRawPhone] = useState('');
+  // Tab State: 'gmail_otp' or 'password'
+  const [authMethod, setAuthMethod] = useState<'gmail_otp' | 'password'>('gmail_otp');
 
   // Email Form State
   const [email, setEmail] = useState('');
@@ -53,32 +49,6 @@ export const SignInPage: React.FC = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  // Handle Phone Auth SMS Dispatch
-  const handlePhoneSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg(null);
-
-    const cleanNum = rawPhone.replace(/\D/g, '');
-    if (!cleanNum || cleanNum.length < 8 || cleanNum.length > 12) {
-      setErrorMsg('Please enter a valid 10-digit mobile number.');
-      return;
-    }
-
-    const fullPhoneNumber = `${countryCode}${cleanNum}`;
-    setIsSubmitting(true);
-
-    try {
-      const res = await sendPhoneOtp(fullPhoneNumber, 'recaptcha-container');
-      if (res.success) {
-        navigate('/auth/verify-otp');
-      } else {
-        setErrorMsg(res.error || 'Failed to dispatch SMS code. Please try again.');
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   // Handle Email / Password Login
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -199,33 +169,33 @@ export const SignInPage: React.FC = () => {
           <button
             type="button"
             onClick={() => {
-              setAuthMethod('phone');
+              setAuthMethod('gmail_otp');
               setErrorMsg(null);
             }}
             className={`py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              authMethod === 'phone'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                : 'text-blue-900 hover:text-blue-600'
-            }`}
-          >
-            <Phone className="w-3.5 h-3.5" />
-            <span>Phone SMS OTP</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setAuthMethod('email');
-              setErrorMsg(null);
-            }}
-            className={`py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              authMethod === 'email'
+              authMethod === 'gmail_otp'
                 ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                 : 'text-blue-900 hover:text-blue-600'
             }`}
           >
             <Mail className="w-3.5 h-3.5" />
-            <span>Email & Password</span>
+            <span>Gmail / Email OTP</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setAuthMethod('password');
+              setErrorMsg(null);
+            }}
+            className={`py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              authMethod === 'password'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                : 'text-blue-900 hover:text-blue-600'
+            }`}
+          >
+            <Lock className="w-3.5 h-3.5" />
+            <span>Password Login</span>
           </button>
         </div>
 
@@ -237,48 +207,35 @@ export const SignInPage: React.FC = () => {
           </div>
         )}
 
-        {/* PHONE SMS OTP FORM */}
-        {authMethod === 'phone' && (
-          <form onSubmit={handlePhoneSubmit} className="space-y-4">
+        {/* GMAIL OTP FORM */}
+        {authMethod === 'gmail_otp' && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleEmailOtpSubmit();
+            }}
+            className="space-y-4"
+          >
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-blue-950 font-display block">
-                Mobile Phone Number
+                Your Gmail / Email Address
               </label>
 
-              <div className="flex items-center gap-2">
-                {/* Country Code Dropdown */}
-                <select
-                  value={countryCode}
-                  onChange={(e) => setCountryCode(e.target.value)}
-                  className="bg-slate-50 border border-blue-200 rounded-2xl px-2.5 py-2.5 text-xs font-mono font-bold text-blue-950 focus:border-blue-600 focus:outline-none cursor-pointer"
-                >
-                  {COUNTRY_CODES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.flag} {c.code}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Phone Input */}
-                <div className="relative flex-1">
-                  <input
-                    type="tel"
-                    placeholder="98765 43210"
-                    value={rawPhone}
-                    onChange={(e) => setRawPhone(e.target.value.replace(/\D/g, ''))}
-                    className="w-full bg-white border border-blue-200 rounded-2xl px-4 py-2.5 text-sm font-mono font-semibold text-blue-950 placeholder:text-blue-300 focus:border-blue-600 focus:bg-white focus:outline-none transition-colors"
-                    maxLength={10}
-                    required
-                  />
-                </div>
+              <div className="relative">
+                <input
+                  type="email"
+                  placeholder="yourname@gmail.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-white border border-blue-200 rounded-2xl pl-10 pr-4 py-2.5 text-sm font-medium text-blue-950 placeholder:text-blue-300 focus:border-blue-600 focus:bg-white focus:outline-none transition-colors"
+                  required
+                />
+                <Mail className="w-4 h-4 text-blue-500 absolute left-3.5 top-3 pointer-events-none" />
               </div>
               <p className="text-[11px] text-blue-700 font-sans">
-                A 6-digit verification code will be sent via Firebase SMS.
+                A 6-digit verification code will be sent to your Gmail/Email inbox. No SMS or phone required!
               </p>
             </div>
-
-            {/* Invisible / Visible Firebase reCAPTCHA Container */}
-            <div id="recaptcha-container" className="flex justify-center" />
 
             <button
               type="submit"
@@ -288,11 +245,11 @@ export const SignInPage: React.FC = () => {
               {isSubmitting ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                  Sending SMS Code...
+                  Sending Gmail OTP...
                 </>
               ) : (
                 <>
-                  Send Verification Code <ArrowRight className="w-4 h-4" />
+                  Send Gmail Verification Code <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
@@ -300,7 +257,7 @@ export const SignInPage: React.FC = () => {
         )}
 
         {/* EMAIL & PASSWORD FORM */}
-        {authMethod === 'email' && (
+        {authMethod === 'password' && (
           <form onSubmit={handleEmailSubmit} className="space-y-3.5">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-blue-950 font-display block">

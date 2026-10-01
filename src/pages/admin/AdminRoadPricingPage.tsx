@@ -41,6 +41,7 @@ import {
   addCustomPricingPlace,
   ZonePricingOverride,
 } from '../../services/dynamicPricingService';
+import { AdminRoadPricingMap } from '../../components/admin/AdminRoadPricingMap';
 
 export const AdminRoadPricingPage: React.FC = () => {
   const { data: rawZones } = useRealtimeTable('road_pricing_zones');
@@ -327,6 +328,34 @@ export const AdminRoadPricingPage: React.FC = () => {
             <span>{fixSuccessMsg}</span>
           </div>
         )}
+
+        {/* FEATURE: Interactive Geographical Map to Fix ERP Price on Corridors */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-mono uppercase tracking-wider text-amber-300 font-bold flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-amber-400" />
+              <span>Interactive ERP Road Pricing Map — Click Gantry to Fix Price</span>
+            </h3>
+            <span className="text-[11px] font-mono text-slate-400">
+              Live updates propagate instantly to Citizen Route Planners
+            </span>
+          </div>
+          <AdminRoadPricingMap
+            zones={zones}
+            overrides={overrides}
+            liveRecords={liveRecords}
+            onFixPrice={handleFixPriceForZone}
+            onResetDynamic={handleResetToDynamic}
+            onCreatePlaceAtCoords={(lat, lng) => {
+              setNewPlace((prev) => ({
+                ...prev,
+                name: prev.name || `Toll Station (${lat.toFixed(3)}, ${lng.toFixed(3)})`,
+                road: prev.road || 'Expressway Corridor',
+              }));
+              setIsAddPlaceOpen(true);
+            }}
+          />
+        </div>
 
         {/* Zones / Places Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

@@ -208,3 +208,33 @@
 .leaflet-popup-tip {
   background: #0f172a !important;
 }
+
+/* Light Theme Styling for Settings Toggle */
+body.light-theme {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+body.light-theme .glass-panel {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(226, 232, 240, 0.9) !important;
+  color: #0f172a !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08) !important;
+}
+
+body.light-theme .glass-panel h1,
+body.light-theme .glass-panel h2,
+body.light-theme .glass-panel h3,
+body.light-theme .glass-panel h4 {
+  color: #0f172a !important;
+}
+
+body.light-theme .glass-panel p,
+body.light-theme .glass-panel span.text-slate-400 {
+  color: #475569 !important;
+}
+
+body.light-theme .leaflet-container {
+  background-color: #e2e8f0 !important;
+}
+
