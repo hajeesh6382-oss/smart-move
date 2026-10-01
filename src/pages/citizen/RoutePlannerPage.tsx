@@ -47,7 +47,7 @@ import { computeMasterRoute, RouteWaypoint, ComputedRouteResult } from '../../se
 import { resolveLocationCoordinates } from '../../services/nominatimService';
 import { fetchPoisAlongRoute } from '../../services/overpassService';
 import { evaluateRouteCongestionCharge, RoutePricingEvaluation } from '../../services/dynamicPricingService';
-import { DynamicMapLocation, RequirementType } from '../../components/map/types';
+import { DynamicMapLocation, RequirementType, LocationType } from '../../components/map/types';
 import { ErrorBoundary } from '../../components/ui/ErrorBoundary';
 
 const RoutePlannerPageContent: React.FC = () => {
@@ -62,8 +62,8 @@ const RoutePlannerPageContent: React.FC = () => {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
   // Location inputs & resolved Place IDs
-  const [startPoint, setStartPoint] = useState(urlOrigin || 'Bengaluru, Karnataka');
-  const [destination, setDestination] = useState(urlDest || 'Periyakulam, Tamil Nadu');
+  const [startPoint, setStartPoint] = useState(urlOrigin || 'Theni, Tamil Nadu');
+  const [destination, setDestination] = useState(urlDest || 'Madurai, Tamil Nadu');
   const [originPlace, setOriginPlace] = useState<PlaceSelection | null>(null);
   const [destPlace, setDestPlace] = useState<PlaceSelection | null>(null);
 
@@ -450,14 +450,35 @@ const RoutePlannerPageContent: React.FC = () => {
           setDestinationCoordinates({ lat: resolvedDestLat, lng: resolvedDestLng });
         }
 
+        // Map first route's milestone places to intermediate locations on the Leaflet map
+        const firstRoute = res.routes[0];
+        const routeMilestones: DynamicMapLocation[] = (firstRoute?.milestones || [])
+          .filter((m) => m.type !== 'origin' && m.type !== 'destination')
+          .map((m, mIdx) => ({
+            id: `milestone_${mIdx}_${m.name.replace(/\s+/g, '_')}`,
+            name: m.name,
+            latitude: m.lat,
+            longitude: m.lng,
+            type: 'waypoint' as LocationType,
+            source: 'osrm' as const,
+            available: `${m.distanceKm} km • ~${m.etaMin} min`,
+            details: `Corridor milestone along ${firstRoute.name}`,
+            status: 'TRANSIT HUB',
+          }));
+
         // Fetch dynamic intermediate places along the calculated route
-        const activePath = res.routes[0]?.pathCoordinates || [];
+        const activePath = firstRoute?.pathCoordinates || [];
         if (activePath.length > 0) {
           setIsFetchingFacilities(true);
           fetchPoisAlongRoute(activePath, selectedRequirement)
-            .then((pois) => setIntermediateLocations(pois))
-            .catch((err) => console.warn('[SMARTMOVE POI] Failed to load facilities:', err))
+            .then((pois) => setIntermediateLocations([...routeMilestones, ...pois]))
+            .catch((err) => {
+              console.warn('[SMARTMOVE POI] Failed to load facilities:', err);
+              setIntermediateLocations(routeMilestones);
+            })
             .finally(() => setIsFetchingFacilities(false));
+        } else {
+          setIntermediateLocations(routeMilestones);
         }
       } else {
         console.warn('[SMARTMOVE OSRM] Route calculation note:', res.error);
@@ -471,6 +492,38 @@ const RoutePlannerPageContent: React.FC = () => {
     },
     [apiKey, selectedRequirement]
   );
+
+  // Switch between calculated routes and update milestone markers on map
+  const handleSelectRoute = (route: ComputedRouteResult, idx: number) => {
+    setSelectedRouteId(route.id);
+    setSelectedRouteIndex(idx);
+    setTurnByTurnSteps(
+      (route.steps || []).map((s) => ({
+        instruction: s.instruction,
+        distance: s.distanceText || `${(s.distanceMeters / 1000).toFixed(1)} km`,
+        duration: s.durationText,
+      }))
+    );
+
+    const routeMilestones: DynamicMapLocation[] = (route.milestones || [])
+      .filter((m) => m.type !== 'origin' && m.type !== 'destination')
+      .map((m, mIdx) => ({
+        id: `milestone_${mIdx}_${m.name.replace(/\s+/g, '_')}`,
+        name: m.name,
+        latitude: m.lat,
+        longitude: m.lng,
+        type: 'waypoint' as LocationType,
+        source: 'osrm' as const,
+        available: `${m.distanceKm} km • ~${m.etaMin} min`,
+        details: `Corridor milestone along ${route.name}`,
+        status: 'TRANSIT HUB',
+      }));
+
+    setIntermediateLocations((prev) => {
+      const nonMilestones = prev.filter((p) => p.type !== 'waypoint');
+      return [...routeMilestones, ...nonMilestones];
+    });
+  };
 
   // Requirement selector handler
   const handleRequirementChange = async (req: RequirementType) => {
@@ -849,10 +902,10 @@ const RoutePlannerPageContent: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-1.5">
                 {[
-                  { from: 'Bengaluru, Karnataka', to: 'Periyakulam, Tamil Nadu', label: 'Bengaluru → Periyakulam' },
-                  { from: 'Chennai, Tamil Nadu', to: 'Coimbatore, Tamil Nadu', label: 'Chennai → Coimbatore' },
+                  { from: 'Theni, Tamil Nadu', to: 'Madurai, Tamil Nadu', label: 'Theni → Madurai (4 Routes)' },
+                  { from: 'Theni, Tamil Nadu', to: 'Periyakulam, Tamil Nadu', label: 'Theni → Periyakulam' },
                   { from: 'Salem, Tamil Nadu', to: 'Madurai, Tamil Nadu', label: 'Salem → Madurai' },
-                  { from: 'Coimbatore, Tamil Nadu', to: 'Chennai, Tamil Nadu', label: 'Coimbatore → Chennai' },
+                  { from: 'Chennai, Tamil Nadu', to: 'Coimbatore, Tamil Nadu', label: 'Chennai → Coimbatore' },
                 ].map((preset) => (
                   <button
                     key={preset.label}
@@ -961,10 +1014,7 @@ const RoutePlannerPageContent: React.FC = () => {
                 return (
                   <div
                     key={route.id}
-                    onClick={() => {
-                      setSelectedRouteId(route.id);
-                      setSelectedRouteIndex(idx);
-                    }}
+                    onClick={() => handleSelectRoute(route, idx)}
                     className={`p-4 rounded-2xl border transition-all duration-200 cursor-pointer ${
                       isSelected
                         ? 'bg-blue-50/90 border-blue-500 shadow-xl shadow-blue-500/10 ring-2 ring-blue-500/30'
@@ -980,7 +1030,9 @@ const RoutePlannerPageContent: React.FC = () => {
                                 ? 'bg-blue-100 text-blue-900 border border-blue-300'
                                 : idx === 1
                                 ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                                : 'bg-purple-100 text-purple-900 border border-purple-300'
+                                : idx === 2
+                                ? 'bg-purple-100 text-purple-900 border border-purple-300'
+                                : 'bg-cyan-100 text-cyan-900 border border-cyan-300'
                             }`}
                           >
                             {route.badge}
@@ -995,6 +1047,43 @@ const RoutePlannerPageContent: React.FC = () => {
                         <div className="text-[11px] text-blue-700 font-medium">{route.distanceKm} km</div>
                       </div>
                     </div>
+
+                    {/* Places Covered Along Corridor Strip */}
+                    {route.majorPlaces && route.majorPlaces.length > 0 && (
+                      <div className="mt-2.5 p-2 rounded-xl bg-blue-50/70 border border-blue-200/80">
+                        <div className="flex items-center justify-between text-[10px] font-mono uppercase font-bold text-blue-900 mb-1">
+                          <span className="flex items-center gap-1 text-blue-700 font-bold">
+                            <MapPin className="w-3 h-3 text-blue-600 shrink-0" />
+                            Places Covered ({route.majorPlaces.length} Points)
+                          </span>
+                          <span className="text-blue-600 font-semibold">{route.distanceKm} km</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1">
+                          {route.majorPlaces.map((place, pIdx) => {
+                            const isFirst = pIdx === 0;
+                            const isLast = pIdx === route.majorPlaces.length - 1;
+                            return (
+                              <React.Fragment key={pIdx}>
+                                <span
+                                  className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                                    isFirst
+                                      ? 'bg-emerald-600 text-white font-bold'
+                                      : isLast
+                                      ? 'bg-rose-600 text-white font-bold'
+                                      : 'bg-white text-blue-950 border border-blue-200'
+                                  }`}
+                                >
+                                  {place}
+                                </span>
+                                {!isLast && (
+                                  <span className="text-blue-400 font-bold text-[9px]">➔</span>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-blue-100 text-[11px] font-mono">
                       <div>
@@ -1056,6 +1145,64 @@ const RoutePlannerPageContent: React.FC = () => {
                   </div>
                 );
               })}
+
+              {/* Active Route Places & Milestones Breakdown Timeline */}
+              {activeRoute && activeRoute.milestones && activeRoute.milestones.length > 0 && (
+                <div className="p-4 rounded-2xl bg-white border border-blue-200 shadow-md space-y-3 animate-in fade-in">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-mono uppercase font-bold text-blue-950 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                      Places Along {activeRoute.name}
+                    </div>
+                    <span className="text-[10px] font-mono font-bold text-blue-600 px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200">
+                      {activeRoute.milestones.length} Major Places
+                    </span>
+                  </div>
+
+                  <div className="relative pl-4 space-y-2.5 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-blue-200">
+                    {activeRoute.milestones.map((m, mIdx) => {
+                      const isOrigin = m.type === 'origin';
+                      const isDest = m.type === 'destination';
+                      return (
+                        <div
+                          key={mIdx}
+                          className="relative flex items-center justify-between text-xs cursor-pointer group"
+                          onClick={() => {
+                            window.dispatchEvent(
+                              new CustomEvent('recenter_map', {
+                                detail: { lat: m.lat, lng: m.lng },
+                              })
+                            );
+                          }}
+                          title="Click to view place on map"
+                        >
+                          <div
+                            className={`absolute -left-[18px] w-2.5 h-2.5 rounded-full border-2 border-white shadow ${
+                              isOrigin
+                                ? 'bg-emerald-500'
+                                : isDest
+                                ? 'bg-rose-500'
+                                : 'bg-blue-600 group-hover:scale-150 transition-transform'
+                            }`}
+                          />
+                          <div>
+                            <span className={`font-bold ${isOrigin ? 'text-emerald-700' : isDest ? 'text-rose-700' : 'text-blue-950 group-hover:text-blue-600'}`}>
+                              {m.name}
+                            </span>
+                            <span className="text-[10px] text-blue-600 block">
+                              {isOrigin ? 'Starting Point' : isDest ? 'Destination' : 'Transit Corridor Town'}
+                            </span>
+                          </div>
+                          <div className="text-right font-mono text-[11px]">
+                            <span className="text-blue-950 font-bold">{m.distanceKm} km</span>
+                            <span className="text-blue-600 block text-[10px]">~{m.etaMin} min</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {!isNavigating ? (
                 <button

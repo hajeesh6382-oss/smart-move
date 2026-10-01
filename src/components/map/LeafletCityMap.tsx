@@ -76,6 +76,10 @@ function createLocationIcon(type: LocationType) {
       size = 28;
       break;
     case 'waypoint':
+      bg = '#0284c7'; // Sky Blue
+      innerHtml = `<div class="flex items-center justify-center w-full h-full text-white text-[12px] font-black">📍</div>`;
+      size = 26;
+      break;
     default:
       bg = '#64748b';
       innerHtml = `<div class="w-2.5 h-2.5 rounded-full bg-white"></div>`;
